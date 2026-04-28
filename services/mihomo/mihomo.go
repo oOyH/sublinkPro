@@ -471,6 +471,7 @@ func fetchLandingIPWithAdapter(proxyAdapter constant.Proxy, ipUrl string) string
 	// 复用proxyAdapter创建HTTP client
 	client := &http.Client{
 		Transport: &http.Transport{
+			ForceAttemptHTTP2: true,
 			DialContext: func(dialCtx context.Context, network, addr string) (net.Conn, error) {
 				h, pStr, splitErr := net.SplitHostPort(addr)
 				if splitErr != nil {
@@ -560,6 +561,11 @@ func fetchQuality(proxyAdapter constant.Proxy, qualityURL string) *QualityCheckR
 		utils.Debug("节点质量检测: 创建请求失败: %v", err)
 		return &QualityCheckResult{Status: models.QualityStatusFailed, Reason: err.Error()}
 	}
+	req.Header.Set("Accept", "application/json,text/plain,*/*")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Pragma", "no-cache")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0")
 
 	resp, err := client.Do(req)
 	if err != nil {
