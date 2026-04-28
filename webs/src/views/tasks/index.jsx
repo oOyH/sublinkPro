@@ -543,7 +543,7 @@ export default function TaskList() {
 
   // Check if any task has stop action available
   const hasStoppableTasks = useMemo(() => {
-    return tasks.some((t) => t.status === 'running' && t.type === 'speed_test');
+    return tasks.some((t) => t.status === 'running' && ['speed_test', 'sub_update'].includes(t.type));
   }, [tasks]);
 
   // Get status filter based on tab
@@ -956,7 +956,7 @@ export default function TaskList() {
                 <TaskMobileCard
                   task={task}
                   onStop={handleStopTask}
-                  canStop={task.status === 'running' && task.type === 'speed_test'}
+                  canStop={task.status === 'running' && ['speed_test', 'sub_update'].includes(task.type)}
                   theme={theme}
                   tokens={tokens}
                 />
@@ -1170,7 +1170,7 @@ export default function TaskList() {
                       </TableCell>
                       {hasStoppableTasks && (
                         <TableCell>
-                          {task.status === 'running' && task.type === 'speed_test' && (
+                          {task.status === 'running' && ['speed_test', 'sub_update'].includes(task.type) && (
                             <Tooltip title="停止">
                               <IconButton
                                 size="small"

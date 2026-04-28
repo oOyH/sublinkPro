@@ -76,7 +76,7 @@ const TaskProgressItem = ({ task, currentTime, onStopTask, isStopping }) => {
       icon: iconMap[task.taskType] || CloudSyncIcon,
       label: meta.label,
       accentColor: meta.color,
-      canStop: task.taskType === 'speed_test'
+      canStop: ['speed_test', 'sub_update'].includes(task.taskType)
     };
   }, [task.taskType]);
 
@@ -139,10 +139,12 @@ const TaskProgressItem = ({ task, currentTime, onStopTask, isStopping }) => {
     }
 
     if (task.taskType === 'sub_update') {
-      const { added, exists, deleted } = task.result;
+      const { added, updated, exists, skipped, deleted } = task.result;
       const parts = [];
       if (added !== undefined) parts.push(`新增 ${added}`);
+      if (updated !== undefined) parts.push(`更新 ${updated}`);
       if (exists !== undefined) parts.push(`已存在 ${exists}`);
+      if (skipped !== undefined) parts.push(`已存在 ${skipped}`);
       if (deleted !== undefined) parts.push(`删除 ${deleted}`);
       return parts.length > 0 ? parts.join(' · ') : null;
     }

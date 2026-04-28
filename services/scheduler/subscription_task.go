@@ -1,12 +1,22 @@
 package scheduler
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"sublink/models"
 	"sublink/node"
 	"sublink/services/notifications"
 	"sublink/utils"
+	"sync"
 )
+
+var subscriptionTaskGuard = struct {
+	mutex   sync.Mutex
+	running map[int]struct{}
+}{
+	running: make(map[int]struct{}),
+}
 
 // ExecuteSubscriptionTask 执行订阅任务的具体业务逻辑
 func ExecuteSubscriptionTask(id int, url string, subName string) {
@@ -16,6 +26,12 @@ func ExecuteSubscriptionTask(id int, url string, subName string) {
 // ExecuteSubscriptionTaskWithTrigger 执行订阅任务（带触发类型）
 func ExecuteSubscriptionTaskWithTrigger(id int, url string, subName string, trigger models.TaskTrigger) {
 	utils.Info("执行自动获取订阅任务 - ID: %d, Name: %s, URL: %s, Trigger: %s", id, subName, url, trigger)
+
+	if !tryAcquireSubscriptionTask(id) {
+		utils.Warn("跳过重复订阅更新任务 - ID: %d, Name: %s, Trigger: %s", id, subName, trigger)
+		return
+	}
+	defer releaseSubscriptionTask(id)
 
 	// 获取最新的机场配置，以便使用最新的代理设置
 	var downloadWithProxy bool
@@ -37,7 +53,10 @@ func ExecuteSubscriptionTaskWithTrigger(id int, url string, subName string, trig
 
 	// 创建 TaskManager 任务和报告器
 	tm := getTaskManager()
-	task, _, createErr := tm.CreateTask(models.TaskTypeSubUpdate, subName, trigger, 0)
+	task, ctx, createErr := tm.CreateTask(models.TaskTypeSubUpdate, subName, trigger, 0)
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	var reporter node.TaskReporter
 	if createErr != nil {
@@ -47,8 +66,12 @@ func ExecuteSubscriptionTaskWithTrigger(id int, url string, subName string, trig
 		reporter = NewTaskManagerReporter(tm, task.ID)
 	}
 
-	usageInfo, err := node.LoadClashConfigFromURLWithReporter(id, url, subName, downloadWithProxy, proxyLink, userAgent, reporter, fetchUsageInfo, skipTLSVerify)
+	usageInfo, err := node.LoadClashConfigFromURLWithReporter(ctx, id, url, subName, downloadWithProxy, proxyLink, userAgent, reporter, fetchUsageInfo, skipTLSVerify)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			utils.Info("订阅更新任务已取消 - ID: %d, Name: %s", id, subName)
+			return
+		}
 		// 仅在失败时发送通知，成功通知由 node/sub.go 中的 scheduleClashToNodeLinks 发送
 		// 这样可以避免重复通知，且成功通知包含更详细的节点统计信息
 		if reporter != nil {
@@ -82,4 +105,22 @@ func ExecuteSubscriptionTaskWithTrigger(id int, url string, subName string, trig
 			applyAutoTagRules(updatedNodes, "subscription_update")
 		}
 	}()
+}
+
+func tryAcquireSubscriptionTask(airportID int) bool {
+	subscriptionTaskGuard.mutex.Lock()
+	defer subscriptionTaskGuard.mutex.Unlock()
+
+	if _, exists := subscriptionTaskGuard.running[airportID]; exists {
+		return false
+	}
+
+	subscriptionTaskGuard.running[airportID] = struct{}{}
+	return true
+}
+
+func releaseSubscriptionTask(airportID int) {
+	subscriptionTaskGuard.mutex.Lock()
+	defer subscriptionTaskGuard.mutex.Unlock()
+	delete(subscriptionTaskGuard.running, airportID)
 }

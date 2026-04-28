@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -92,9 +93,17 @@ func setupClientsAPITestDB(t *testing.T) {
 func createClientSubscriptionFixture(t *testing.T, clashTemplatePath, surgeTemplatePath, subName, token, linkName string) {
 	t.Helper()
 
+	configBytes, err := json.Marshal(map[string]string{
+		"clash": clashTemplatePath,
+		"surge": surgeTemplatePath,
+	})
+	if err != nil {
+		t.Fatalf("marshal subscription config for %s: %v", subName, err)
+	}
+
 	sub := models.Subcription{
 		Name:                  subName,
-		Config:                `{"clash":"` + clashTemplatePath + `","surge":"` + surgeTemplatePath + `"}`,
+		Config:                string(configBytes),
 		RefreshUsageOnRequest: false,
 	}
 	if err := sub.Add(); err != nil {

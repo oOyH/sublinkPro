@@ -277,9 +277,12 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                       }}
                                     >
                                       <Stack
-                                        direction={isMobile ? 'column' : 'row'}
+                                        direction="row"
                                         spacing={1.25}
-                                        alignItems={isMobile ? 'stretch' : 'center'}
+                                        useFlexGap
+                                        flexWrap="wrap"
+                                        alignItems="center"
+                                        sx={{ width: '100%', minWidth: 0, rowGap: 1.25 }}
                                       >
                                         <Box
                                           {...provided.dragHandleProps}
@@ -290,7 +293,8 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                             cursor: 'grab',
                                             color: tertiaryText,
                                             alignSelf: isMobile ? 'flex-start' : 'center',
-                                            pt: isMobile ? 0.25 : 0
+                                            pt: isMobile ? 0.25 : 0,
+                                            flexShrink: 0
                                           }}
                                         >
                                           <DragIndicatorIcon fontSize="small" />
@@ -300,10 +304,16 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                           size="small"
                                           checked={rule.enabled}
                                           onChange={(e) => handleUpdateRule(rule.id, 'enabled', e.target.checked)}
-                                          sx={{ alignSelf: isMobile ? 'flex-start' : 'center' }}
+                                          sx={{ alignSelf: isMobile ? 'flex-start' : 'center', flexShrink: 0 }}
                                         />
 
-                                        <FormControl size="small" sx={{ minWidth: isMobile ? '100%' : 96 }}>
+                                        <FormControl
+                                          size="small"
+                                          sx={{
+                                            minWidth: isMobile ? '100%' : 88,
+                                            flexShrink: 0
+                                          }}
+                                        >
                                           <Select
                                             value={rule.matchMode}
                                             onChange={(e) => handleUpdateRule(rule.id, 'matchMode', e.target.value)}
@@ -318,12 +328,22 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                           placeholder={rule.matchMode === 'regex' ? '正则表达式' : '查找文本'}
                                           value={rule.pattern}
                                           onChange={(e) => handleUpdateRule(rule.id, 'pattern', e.target.value)}
-                                          sx={{ flex: 1, minWidth: isMobile ? '100%' : 140 }}
+                                          sx={{
+                                            flex: isMobile ? '1 1 100%' : '1 1 150px',
+                                            minWidth: 0
+                                          }}
                                           error={regexError}
                                           helperText={regexError ? '无效正则' : ' '}
                                         />
 
-                                        <Typography sx={{ display: isMobile ? 'none' : 'block', color: tertiaryText, fontWeight: 600 }}>
+                                        <Typography
+                                          sx={{
+                                            display: isMobile ? 'none' : 'block',
+                                            color: tertiaryText,
+                                            fontWeight: 600,
+                                            flexShrink: 0
+                                          }}
+                                        >
                                           →
                                         </Typography>
 
@@ -332,19 +352,33 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                           placeholder="替换为 (留空删除)"
                                           value={rule.replacement}
                                           onChange={(e) => handleUpdateRule(rule.id, 'replacement', e.target.value)}
-                                          sx={{ flex: 1, minWidth: isMobile ? '100%' : 120 }}
+                                          sx={{
+                                            flex: isMobile ? '1 1 100%' : '1 1 150px',
+                                            minWidth: 0
+                                          }}
                                         />
 
-                                        <Tooltip title="删除规则">
-                                          <IconButton
-                                            size="small"
-                                            color="error"
-                                            onClick={() => handleDeleteRule(rule.id)}
-                                            sx={{ alignSelf: isMobile ? 'flex-end' : 'center' }}
-                                          >
-                                            <DeleteOutlineIcon fontSize="small" />
-                                          </IconButton>
-                                        </Tooltip>
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'flex-end',
+                                            ml: isMobile ? 0 : 'auto',
+                                            width: isMobile ? '100%' : 'auto',
+                                            flexShrink: 0
+                                          }}
+                                        >
+                                          <Tooltip title="删除规则">
+                                            <IconButton
+                                              size="small"
+                                              color="error"
+                                              onClick={() => handleDeleteRule(rule.id)}
+                                              sx={{ alignSelf: isMobile ? 'flex-end' : 'center' }}
+                                            >
+                                              <DeleteOutlineIcon fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                        </Box>
                                       </Stack>
                                     </Paper>
                                   </Fade>

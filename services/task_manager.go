@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sublink/database"
 	"sublink/models"
 	"sublink/services/notifications"
 	"sublink/services/sse"
@@ -30,6 +31,15 @@ type TaskManager struct {
 var (
 	taskManager     *TaskManager
 	taskManagerOnce sync.Once
+	taskLoopOnce    sync.Once
+)
+
+const (
+	taskFinalSyncRetryCount   = 3
+	taskFinalSyncRetryDelay   = 200 * time.Millisecond
+	taskRetrySweepInterval    = 10 * time.Second
+	taskOrphanSweepInterval   = time.Minute
+	taskOrphanRunningAgeLimit = 15 * time.Minute
 )
 
 // GetTaskManager 获取任务管理器单例
@@ -151,9 +161,7 @@ func (tm *TaskManager) CompleteTask(taskID string, message string, result interf
 	}
 
 	// 同步最终状态到数据库（任务结束时一次性写入）
-	if err := running.Task.SyncFinalStatus(); err != nil {
-		utils.Error("同步任务最终状态失败: %v", err)
-	}
+	syncErr := tm.syncFinalStatusWithRetry(running.Task)
 
 	// 广播完成进度（前端用）
 	tm.broadcastProgressWithResult(running.Task, "completed", result)
@@ -165,13 +173,7 @@ func (tm *TaskManager) CompleteTask(taskID string, message string, result interf
 	// 取消 context（确保所有 goroutine 退出）
 	running.Cancel()
 
-	// 从运行中任务移除（延迟移除，给 SSE 时间广播）
-	go func() {
-		time.Sleep(500 * time.Millisecond)
-		tm.mutex.Lock()
-		delete(tm.runningTasks, taskID)
-		tm.mutex.Unlock()
-	}()
+	tm.cleanupTrackedTaskAfterFinalSync(taskID, syncErr)
 
 	utils.Info("任务完成: ID=%s, Message=%s", taskID, message)
 
@@ -195,9 +197,7 @@ func (tm *TaskManager) FailTask(taskID string, errMsg string) error {
 	running.Task.CompletedAt = &now
 
 	// 同步最终状态到数据库（任务结束时一次性写入）
-	if err := running.Task.SyncFinalStatus(); err != nil {
-		utils.Error("同步任务最终状态失败: %v", err)
-	}
+	syncErr := tm.syncFinalStatusWithRetry(running.Task)
 
 	// 广播错误进度（前端用）
 	tm.broadcastProgress(running.Task, "error")
@@ -208,13 +208,7 @@ func (tm *TaskManager) FailTask(taskID string, errMsg string) error {
 	// 取消 context
 	running.Cancel()
 
-	// 从运行中任务移除
-	go func() {
-		time.Sleep(500 * time.Millisecond)
-		tm.mutex.Lock()
-		delete(tm.runningTasks, taskID)
-		tm.mutex.Unlock()
-	}()
+	tm.cleanupTrackedTaskAfterFinalSync(taskID, syncErr)
 
 	utils.Warn("任务失败: ID=%s, Error=%s", taskID, errMsg)
 
@@ -251,9 +245,7 @@ func (tm *TaskManager) CancelTask(taskID string) error {
 	running.Task.CompletedAt = &now
 
 	// 同步最终状态到数据库（任务结束时一次性写入）
-	if err := running.Task.SyncFinalStatus(); err != nil {
-		utils.Error("同步任务最终状态失败: %v", err)
-	}
+	syncErr := tm.syncFinalStatusWithRetry(running.Task)
 
 	// 广播取消
 	tm.broadcastProgress(running.Task, "cancelled")
@@ -261,13 +253,7 @@ func (tm *TaskManager) CancelTask(taskID string) error {
 	// 取消 context（这会通知所有监听的 goroutine）
 	running.Cancel()
 
-	// 从运行中任务移除
-	go func() {
-		time.Sleep(500 * time.Millisecond)
-		tm.mutex.Lock()
-		delete(tm.runningTasks, taskID)
-		tm.mutex.Unlock()
-	}()
+	tm.cleanupTrackedTaskAfterFinalSync(taskID, syncErr)
 
 	utils.Info("任务已取消: ID=%s", taskID)
 
@@ -312,6 +298,9 @@ func (tm *TaskManager) GetRunningTasks() []*RunningTask {
 
 	tasks := make([]*RunningTask, 0, len(tm.runningTasks))
 	for _, t := range tm.runningTasks {
+		if !isTaskActiveStatus(t.Task.Status) {
+			continue
+		}
 		tasks = append(tasks, t)
 	}
 	return tasks
@@ -324,6 +313,9 @@ func (tm *TaskManager) GetRunningTasksInfo() []models.Task {
 
 	tasks := make([]models.Task, 0, len(tm.runningTasks))
 	for _, t := range tm.runningTasks {
+		if !isTaskActiveStatus(t.Task.Status) {
+			continue
+		}
 		tasks = append(tasks, *t.Task)
 	}
 	return tasks
@@ -339,6 +331,117 @@ func (tm *TaskManager) CleanupTask(taskID string) {
 		running.Cancel()
 		delete(tm.runningTasks, taskID)
 	}
+}
+
+func (tm *TaskManager) syncFinalStatusWithRetry(task *models.Task) error {
+	err := database.WithRetry(taskFinalSyncRetryCount, taskFinalSyncRetryDelay, func() error {
+		return task.SyncFinalStatus()
+	})
+	if err != nil {
+		utils.Error("同步任务最终状态失败，任务将保留在内存等待重试: ID=%s, Status=%s, Error=%v", task.ID, task.Status, err)
+	}
+	return err
+}
+
+func (tm *TaskManager) cleanupTrackedTaskAfterFinalSync(taskID string, syncErr error) {
+	if syncErr != nil {
+		return
+	}
+
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		tm.removeTrackedTask(taskID)
+	}()
+}
+
+func (tm *TaskManager) removeTrackedTask(taskID string) {
+	tm.mutex.Lock()
+	defer tm.mutex.Unlock()
+	delete(tm.runningTasks, taskID)
+}
+
+func (tm *TaskManager) retryPendingFinalStates() {
+	tm.mutex.RLock()
+	tasks := make([]*models.Task, 0)
+	for _, running := range tm.runningTasks {
+		if running == nil || running.Task == nil {
+			continue
+		}
+		if isTaskActiveStatus(running.Task.Status) {
+			continue
+		}
+		taskCopy := *running.Task
+		tasks = append(tasks, &taskCopy)
+	}
+	tm.mutex.RUnlock()
+
+	for _, task := range tasks {
+		if err := tm.syncFinalStatusWithRetry(task); err != nil {
+			continue
+		}
+		tm.removeTrackedTask(task.ID)
+		utils.Info("任务终态补偿同步成功: ID=%s, Status=%s", task.ID, task.Status)
+	}
+}
+
+func (tm *TaskManager) reconcileOrphanRunningTasks() {
+	tm.mutex.RLock()
+	activeTaskIDs := make(map[string]struct{}, len(tm.runningTasks))
+	for taskID := range tm.runningTasks {
+		activeTaskIDs[taskID] = struct{}{}
+	}
+	tm.mutex.RUnlock()
+
+	cutoff := time.Now().Add(-taskOrphanRunningAgeLimit)
+	var staleTasks []models.Task
+	if err := database.DB.Where("status = ? AND (started_at IS NULL OR started_at < ?)", models.TaskStatusRunning, cutoff).Find(&staleTasks).Error; err != nil {
+		utils.Warn("扫描孤儿 running 任务失败: %v", err)
+		return
+	}
+
+	for _, task := range staleTasks {
+		if _, ok := activeTaskIDs[task.ID]; ok {
+			continue
+		}
+
+		now := time.Now()
+		task.Status = models.TaskStatusError
+		task.Message = "任务状态同步异常，系统已自动收敛"
+		task.CompletedAt = &now
+
+		if err := database.WithRetry(taskFinalSyncRetryCount, taskFinalSyncRetryDelay, func() error {
+			return task.SyncFinalStatus()
+		}); err != nil {
+			utils.Warn("自动收敛孤儿任务失败: ID=%s, Error=%v", task.ID, err)
+			continue
+		}
+
+		utils.Warn("已自动收敛孤儿 running 任务: ID=%s", task.ID)
+	}
+}
+
+func (tm *TaskManager) startMaintenanceLoops() {
+	taskLoopOnce.Do(func() {
+		go func() {
+			ticker := time.NewTicker(taskRetrySweepInterval)
+			defer ticker.Stop()
+			for range ticker.C {
+				tm.retryPendingFinalStates()
+			}
+		}()
+
+		go func() {
+			ticker := time.NewTicker(taskOrphanSweepInterval)
+			defer ticker.Stop()
+			for range ticker.C {
+				tm.reconcileOrphanRunningTasks()
+			}
+		}()
+	})
+}
+
+func isTaskActiveStatus(status models.TaskStatus) bool {
+	return status == models.TaskStatusRunning || status == models.TaskStatusPending
 }
 
 // broadcastProgress 广播任务进度到 SSE
@@ -413,6 +516,8 @@ func InitTaskManager() {
 			utils.Info("已清理 %d 个过期任务", affected)
 		}
 	}()
+
+	tm.startMaintenanceLoops()
 
 	_ = tm // 确保初始化
 }

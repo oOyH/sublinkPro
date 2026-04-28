@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -139,14 +140,18 @@ func isTLSError(err error) bool {
 // proxyLink: 代理链接 (可选)
 // userAgent: 请求的 User-Agent (可选，默认 Clash)
 func LoadClashConfigFromURL(id int, urlStr string, subName string, downloadWithProxy bool, proxyLink string, userAgent string) (*UsageInfo, error) {
-	return LoadClashConfigFromURLWithReporter(id, urlStr, subName, downloadWithProxy, proxyLink, userAgent, nil, false, true)
+	return LoadClashConfigFromURLWithReporter(context.Background(), id, urlStr, subName, downloadWithProxy, proxyLink, userAgent, nil, false, true)
 }
 
 // LoadClashConfigFromURLWithReporter 从指定 URL 加载 Clash 配置（带任务报告器）
 // reporter: 任务进度报告器，用于TaskManager集成
 // fetchUsageInfo: 是否获取用量信息
 // skipTLSVerify: 是否跳过TLS证书验证
-func LoadClashConfigFromURLWithReporter(id int, urlStr string, subName string, downloadWithProxy bool, proxyLink string, userAgent string, reporter TaskReporter, fetchUsageInfo bool, skipTLSVerify bool) (*UsageInfo, error) {
+func LoadClashConfigFromURLWithReporter(ctx context.Context, id int, urlStr string, subName string, downloadWithProxy bool, proxyLink string, userAgent string, reporter TaskReporter, fetchUsageInfo bool, skipTLSVerify bool) (*UsageInfo, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	// 创建 HTTP 客户端，配置 TLS
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -211,7 +216,7 @@ func LoadClashConfigFromURLWithReporter(id int, urlStr string, subName string, d
 	}
 
 	// 创建请求并设置 User-Agent
-	req, err := http.NewRequest("GET", urlStr, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
 	if err != nil {
 		utils.Error("URL %s，创建请求失败:  %v", urlStr, err)
 		return nil, err
@@ -224,6 +229,9 @@ func LoadClashConfigFromURLWithReporter(id int, urlStr string, subName string, d
 
 	resp, err := client.Do(req)
 	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
+			return nil, context.Canceled
+		}
 		utils.Error("URL %s，获取Clash配置失败:  %v", urlStr, err)
 		// 检测是否为 TLS 证书相关错误，给出更明确的提示
 		var title, message string
@@ -277,6 +285,9 @@ func LoadClashConfigFromURLWithReporter(id int, urlStr string, subName string, d
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
+			return nil, context.Canceled
+		}
 		utils.Error("URL %s，读取Clash配置失败:  %v", urlStr, err)
 		// 发送读取失败通知
 		notifications.Publish("subscription.sync_failed", notifications.Payload{
@@ -289,6 +300,10 @@ func LoadClashConfigFromURLWithReporter(id int, urlStr string, subName string, d
 				"error":  err.Error(),
 			},
 		})
+		return nil, err
+	}
+
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	var config ClashConfig
@@ -351,7 +366,7 @@ func LoadClashConfigFromURLWithReporter(id int, urlStr string, subName string, d
 		return nil, fmt.Errorf("解析失败 or 未找到节点")
 	}
 
-	err = scheduleClashToNodeLinks(id, config.Proxies, subName, reporter, usageInfo)
+	err = scheduleClashToNodeLinks(ctx, id, config.Proxies, subName, reporter, usageInfo)
 	return usageInfo, err
 }
 
@@ -360,9 +375,12 @@ func LoadClashConfigFromURLWithReporter(id int, urlStr string, subName string, d
 // proxys: 代理节点列表
 // subName: 订阅名称
 // usageInfo: 订阅用量信息 (可选)
-func scheduleClashToNodeLinks(id int, proxys []protocol.Proxy, subName string, reporter TaskReporter, usageInfo *UsageInfo) error {
+func scheduleClashToNodeLinks(ctx context.Context, id int, proxys []protocol.Proxy, subName string, reporter TaskReporter, usageInfo *UsageInfo) error {
 	if reporter == nil {
 		reporter = &NoOpTaskReporter{}
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
 	addSuccessCount := 0
@@ -402,6 +420,10 @@ func scheduleClashToNodeLinks(id int, proxys []protocol.Proxy, subName string, r
 		proxys = applyAirportNodeRename(airport, proxys)
 		// 节点名称唯一化（添加机场标识前缀，防止多机场节点重名）
 		proxys = applyAirportNodeUniquify(airport, proxys)
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 
 	// 1. 获取该订阅当前在数据库中的所有节点
@@ -504,6 +526,9 @@ func scheduleClashToNodeLinks(id int, proxys []protocol.Proxy, subName string, r
 
 	// 2. 遍历新获取的节点，插入或更新
 	for proxyIndex, proxy := range proxys {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		utils.Info("💾准备存储节点【%s】", proxy.Name)
 		var Node models.Node
 
@@ -675,6 +700,10 @@ func scheduleClashToNodeLinks(id int, proxys []protocol.Proxy, subName string, r
 	}
 
 	// 4. 批量写入数据库（一次性操作，减少数据库I/O）
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	// 批量添加新节点
 	if len(nodesToAdd) > 0 {
 		if err := models.BatchAddNodes(nodesToAdd); err != nil {
@@ -688,6 +717,9 @@ func scheduleClashToNodeLinks(id int, proxys []protocol.Proxy, subName string, r
 
 	// 批量更新名称/链接已变更的节点
 	actualUpdateCount := 0
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if len(nodesToUpdate) > 0 {
 		if cnt, err := models.BatchUpdateNodeInfo(nodesToUpdate); err != nil {
 			utils.Error("❌批量更新节点信息失败：%v", err)
@@ -699,6 +731,9 @@ func scheduleClashToNodeLinks(id int, proxys []protocol.Proxy, subName string, r
 
 	// 批量删除失效节点
 	deleteCount := 0
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if len(nodeIDsToDelete) > 0 {
 		if err := models.BatchDel(nodeIDsToDelete); err != nil {
 			utils.Error("❌批量删除节点失败：%v", err)
@@ -722,6 +757,10 @@ func scheduleClashToNodeLinks(id int, proxys []protocol.Proxy, subName string, r
 	err1 := airport.Update()
 	if err1 != nil {
 		return err1
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 	// 通过 reporter 报告任务完成
 	reporter.ReportComplete(fmt.Sprintf("订阅更新完成 (新增: %d, 更新: %d, 已存在: %d, 删除: %d)", addSuccessCount, actualUpdateCount, skipCount, deleteCount), map[string]interface{}{
