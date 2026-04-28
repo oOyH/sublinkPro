@@ -54,6 +54,11 @@ export default function AirportTable({
   const theme = useTheme();
   const palette = theme.vars?.palette || theme.palette;
   const { isDark } = useResolvedColorScheme();
+  const compactActionButtonSx = {
+    width: 27,
+    height: 27,
+    flex: '0 0 auto'
+  };
 
   // 复制提示状态
   const [copyTip, setCopyTip] = useState({ open: false, name: '' });
@@ -437,20 +442,32 @@ export default function AirportTable({
                 </Box>
 
                 {/* 节点和调度信息 */}
-                <Stack direction="row" spacing={0.75} sx={{ mb: 1.25, flexWrap: 'wrap', gap: 0.4 }}>
+                <Stack direction="row" spacing={0.55} alignItems="center" sx={{ mb: 1.25, minWidth: 0, flexWrap: 'nowrap' }}>
                   <Chip
                     label={`${airport.nodeCount || 0} 节点`}
                     color="primary"
                     variant="outlined"
                     size="small"
-                    sx={{ height: 20, fontSize: '0.68rem' }}
+                    sx={{ height: 20, fontSize: '0.68rem', flexShrink: 0 }}
                   />
                   <Chip
                     icon={<AccessTimeIcon sx={{ fontSize: '12px !important' }} />}
                     label={airport.cronExpr}
                     variant="outlined"
                     size="small"
-                    sx={{ height: 20, fontSize: '0.68rem' }}
+                    sx={{
+                      height: 20,
+                      fontSize: '0.68rem',
+                      minWidth: 0,
+                      flex: 1,
+                      maxWidth: '100%',
+                      '& .MuiChip-label': {
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }
+                    }}
                   />
                 </Stack>
 
@@ -533,115 +550,114 @@ export default function AirportTable({
 
                 {/* 操作按钮 - 固定在底部 */}
                 <Box sx={{ mt: 'auto', pt: 0.85, borderTop: `1px solid ${alpha(theme.palette.divider, 0.08)}` }}>
-                  <Stack spacing={0.55} alignItems="center">
-                    <Stack direction="row" spacing={0.55} justifyContent="center" useFlexGap>
-                      <Tooltip title="查看节点" arrow>
+                  <Stack direction="row" spacing={0.45} justifyContent="center" alignItems="center" useFlexGap sx={{ flexWrap: 'nowrap' }}>
+                    <Tooltip title="查看节点" arrow>
+                      <IconButton
+                        size="small"
+                        aria-label="查看节点"
+                        onClick={() => onOpenNodes(airport)}
+                        sx={{
+                          ...compactActionButtonSx,
+                          bgcolor: alpha(theme.palette.primary.main, 0.08),
+                          color: theme.palette.primary.main,
+                          '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.15) }
+                        }}
+                      >
+                        <LanIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="快速检测" arrow>
+                      <IconButton
+                        size="small"
+                        aria-label="快速检测"
+                        onClick={() => onQuickCheck(airport)}
+                        sx={{
+                          ...compactActionButtonSx,
+                          bgcolor: alpha(theme.palette.primary.main, 0.08),
+                          color: theme.palette.primary.main,
+                          '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.15) }
+                        }}
+                      >
+                        <SpeedIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="立即拉取" arrow>
+                      <IconButton
+                        size="small"
+                        aria-label="立即拉取"
+                        onClick={() => onPull(airport)}
+                        sx={{
+                          ...compactActionButtonSx,
+                          bgcolor: alpha(theme.palette.primary.main, 0.08),
+                          color: theme.palette.primary.main,
+                          '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.15) }
+                        }}
+                      >
+                        <DownloadIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                    {airport.fetchUsageInfo && (
+                      <Tooltip title="刷新用量" arrow>
                         <IconButton
                           size="small"
-                          aria-label="查看节点"
-                          onClick={() => onOpenNodes(airport)}
+                          aria-label="刷新用量"
+                          onClick={() => onRefreshUsage(airport)}
                           sx={{
-                            width: 28,
-                            height: 28,
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
-                            color: theme.palette.primary.main,
-                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.15) }
+                            ...compactActionButtonSx,
+                            bgcolor: alpha(theme.palette.success.main, 0.08),
+                            color: theme.palette.success.main,
+                            '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.15) }
                           }}
                         >
-                          <LanIcon sx={{ fontSize: 16 }} />
+                          <AccountBalanceWalletIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="快速检测" arrow>
-                        <IconButton
-                          size="small"
-                          aria-label="快速检测"
-                          onClick={() => onQuickCheck(airport)}
-                          sx={{
-                            width: 28,
-                            height: 28,
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
-                            color: theme.palette.primary.main,
-                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.15) }
-                          }}
-                        >
-                          <SpeedIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="立即拉取" arrow>
-                        <IconButton
-                          size="small"
-                          aria-label="立即拉取"
-                          onClick={() => onPull(airport)}
-                          sx={{
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
-                            color: theme.palette.primary.main,
-                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.15) }
-                          }}
-                        >
-                          <DownloadIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Tooltip>
-                      {airport.fetchUsageInfo && (
-                        <Tooltip title="刷新用量" arrow>
-                          <IconButton
-                            size="small"
-                            aria-label="刷新用量"
-                            onClick={() => onRefreshUsage(airport)}
-                            sx={{
-                              bgcolor: alpha(theme.palette.success.main, 0.08),
-                              color: theme.palette.success.main,
-                              '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.15) }
-                            }}
-                          >
-                            <AccountBalanceWalletIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </Stack>
-                    <Stack direction="row" spacing={0.55} justifyContent="center" useFlexGap>
-                      <Tooltip title="复制订阅地址" arrow>
-                        <IconButton
-                          size="small"
-                          aria-label="复制订阅地址"
-                          onClick={() => handleCopyUrl(airport)}
-                          sx={{
-                            bgcolor: alpha(theme.palette.secondary.main, 0.08),
-                            color: theme.palette.secondary.main,
-                            '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.15) }
-                          }}
-                        >
-                          <ContentCopyIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="编辑" arrow>
-                        <IconButton
-                          size="small"
-                          aria-label="编辑"
-                          onClick={() => onEdit(airport)}
-                          sx={{
-                            bgcolor: alpha(theme.palette.info.main, 0.08),
-                            color: theme.palette.info.main,
-                            '&:hover': { bgcolor: alpha(theme.palette.info.main, 0.15) }
-                          }}
-                        >
-                          <EditIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="删除" arrow>
-                        <IconButton
-                          size="small"
-                          aria-label="删除"
-                          onClick={() => onDelete(airport)}
-                          sx={{
-                            bgcolor: alpha(theme.palette.error.main, 0.08),
-                            color: theme.palette.error.main,
-                            '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.15) }
-                          }}
-                        >
-                          <DeleteIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
+                    )}
+                    <Tooltip title="复制订阅地址" arrow>
+                      <IconButton
+                        size="small"
+                        aria-label="复制订阅地址"
+                        onClick={() => handleCopyUrl(airport)}
+                        sx={{
+                          ...compactActionButtonSx,
+                          bgcolor: alpha(theme.palette.secondary.main, 0.08),
+                          color: theme.palette.secondary.main,
+                          '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.15) }
+                        }}
+                      >
+                        <ContentCopyIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="编辑" arrow>
+                      <IconButton
+                        size="small"
+                        aria-label="编辑"
+                        onClick={() => onEdit(airport)}
+                        sx={{
+                          ...compactActionButtonSx,
+                          bgcolor: alpha(theme.palette.info.main, 0.08),
+                          color: theme.palette.info.main,
+                          '&:hover': { bgcolor: alpha(theme.palette.info.main, 0.15) }
+                        }}
+                      >
+                        <EditIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="删除" arrow>
+                      <IconButton
+                        size="small"
+                        aria-label="删除"
+                        onClick={() => onDelete(airport)}
+                        sx={{
+                          ...compactActionButtonSx,
+                          bgcolor: alpha(theme.palette.error.main, 0.08),
+                          color: theme.palette.error.main,
+                          '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.15) }
+                        }}
+                      >
+                        <DeleteIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
                   </Stack>
                 </Box>
               </CardContent>
