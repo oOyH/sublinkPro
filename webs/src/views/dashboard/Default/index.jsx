@@ -1113,6 +1113,7 @@ const PremiumStatCard = ({
 // ==============================|| Star 提醒卡片组件 ||============================== //
 
 import { donationConfig } from 'config/donation';
+import { GITHUB_API_RELEASES, GITHUB_API_REPO, GITHUB_ISSUES_URL, GITHUB_URL } from 'config/githubRepo';
 
 const StarReminderCard = () => {
   const theme = useTheme();
@@ -1126,7 +1127,7 @@ const StarReminderCard = () => {
   useEffect(() => {
     const fetchStarCount = async () => {
       try {
-        const response = await fetch('https://api.github.com/repos/ZeroDeng01/sublinkPro');
+        const response = await fetch(GITHUB_API_REPO);
         if (response.ok) {
           const data = await response.json();
           setStarCount(data.stargazers_count);
@@ -1139,11 +1140,11 @@ const StarReminderCard = () => {
   }, []);
 
   const handleStar = () => {
-    window.open('https://github.com/ZeroDeng01/sublinkPro', '_blank');
+    window.open(GITHUB_URL, '_blank');
   };
 
   const handleFeedback = () => {
-    window.open('https://github.com/ZeroDeng01/sublinkPro/issues', '_blank');
+    window.open(GITHUB_ISSUES_URL, '_blank');
   };
 
   return (
@@ -1873,7 +1874,7 @@ export default function DashboardDefault() {
   const fetchReleases = async () => {
     try {
       setLoadingReleases(true);
-      const response = await fetch('https://api.github.com/repos/ZeroDeng01/sublinkPro/releases?per_page=5');
+      const response = await fetch(GITHUB_API_RELEASES);
       if (!response.ok) throw new Error('Failed to fetch releases');
       const data = await response.json();
       setReleases(data);

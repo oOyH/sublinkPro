@@ -276,13 +276,18 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                           : insetHighlight
                                       }}
                                     >
-                                      <Stack
-                                        direction="row"
-                                        spacing={1.25}
-                                        useFlexGap
-                                        flexWrap="wrap"
-                                        alignItems="center"
-                                        sx={{ width: '100%', minWidth: 0, rowGap: 1.25 }}
+                                      <Box
+                                        sx={{
+                                          width: '100%',
+                                          minWidth: 0,
+                                          display: 'grid',
+                                          alignItems: 'start',
+                                          columnGap: 1.25,
+                                          rowGap: 1.25,
+                                          gridTemplateColumns: isMobile
+                                            ? 'auto auto minmax(0, 1fr) auto'
+                                            : 'auto auto minmax(88px, 92px) minmax(0, 1fr) auto minmax(0, 1fr) auto'
+                                        }}
                                       >
                                         <Box
                                           {...provided.dragHandleProps}
@@ -292,9 +297,10 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                             justifyContent: 'center',
                                             cursor: 'grab',
                                             color: tertiaryText,
-                                            alignSelf: isMobile ? 'flex-start' : 'center',
+                                            alignSelf: 'center',
                                             pt: isMobile ? 0.25 : 0,
-                                            flexShrink: 0
+                                            flexShrink: 0,
+                                            gridColumn: isMobile ? '1' : '1'
                                           }}
                                         >
                                           <DragIndicatorIcon fontSize="small" />
@@ -304,14 +310,19 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                           size="small"
                                           checked={rule.enabled}
                                           onChange={(e) => handleUpdateRule(rule.id, 'enabled', e.target.checked)}
-                                          sx={{ alignSelf: isMobile ? 'flex-start' : 'center', flexShrink: 0 }}
+                                          sx={{
+                                            alignSelf: 'center',
+                                            flexShrink: 0,
+                                            gridColumn: isMobile ? '2' : '2'
+                                          }}
                                         />
 
                                         <FormControl
                                           size="small"
                                           sx={{
-                                            minWidth: isMobile ? '100%' : 88,
-                                            flexShrink: 0
+                                            minWidth: 0,
+                                            flexShrink: 0,
+                                            gridColumn: isMobile ? '3' : '3'
                                           }}
                                         >
                                           <Select
@@ -329,8 +340,8 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                           value={rule.pattern}
                                           onChange={(e) => handleUpdateRule(rule.id, 'pattern', e.target.value)}
                                           sx={{
-                                            flex: isMobile ? '1 1 100%' : '1 1 150px',
-                                            minWidth: 0
+                                            minWidth: 0,
+                                            gridColumn: isMobile ? '1 / -1' : '4'
                                           }}
                                           error={regexError}
                                           helperText={regexError ? '无效正则' : ' '}
@@ -341,7 +352,9 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                             display: isMobile ? 'none' : 'block',
                                             color: tertiaryText,
                                             fontWeight: 600,
-                                            flexShrink: 0
+                                            flexShrink: 0,
+                                            alignSelf: 'center',
+                                            gridColumn: '5'
                                           }}
                                         >
                                           →
@@ -353,9 +366,10 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                           value={rule.replacement}
                                           onChange={(e) => handleUpdateRule(rule.id, 'replacement', e.target.value)}
                                           sx={{
-                                            flex: isMobile ? '1 1 100%' : '1 1 150px',
-                                            minWidth: 0
+                                            minWidth: 0,
+                                            gridColumn: isMobile ? '1 / -1' : '6'
                                           }}
+                                          helperText=" "
                                         />
 
                                         <Box
@@ -363,9 +377,11 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'flex-end',
-                                            ml: isMobile ? 0 : 'auto',
-                                            width: isMobile ? '100%' : 'auto',
-                                            flexShrink: 0
+                                            width: isMobile ? 'auto' : '100%',
+                                            flexShrink: 0,
+                                            alignSelf: isMobile ? 'center' : 'start',
+                                            gridColumn: isMobile ? '4' : '7',
+                                            gridRow: isMobile ? '1' : '1'
                                           }}
                                         >
                                           <Tooltip title="删除规则">
@@ -373,13 +389,13 @@ export default function NodeNamePreprocessor({ value, onChange }) {
                                               size="small"
                                               color="error"
                                               onClick={() => handleDeleteRule(rule.id)}
-                                              sx={{ alignSelf: isMobile ? 'flex-end' : 'center' }}
+                                              sx={{ alignSelf: isMobile ? 'flex-start' : 'center' }}
                                             >
                                               <DeleteOutlineIcon fontSize="small" />
                                             </IconButton>
                                           </Tooltip>
                                         </Box>
-                                      </Stack>
+                                      </Box>
                                     </Paper>
                                   </Fade>
                                 );

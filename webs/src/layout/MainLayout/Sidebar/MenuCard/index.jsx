@@ -20,11 +20,7 @@ import useConfig from 'hooks/useConfig';
 import useResolvedColorScheme from 'hooks/useResolvedColorScheme';
 import { getReadableTextTokens, getSurfaceTokens } from 'themes/surfaceTokens';
 import { withAlpha } from 'utils/colorUtils';
-
-// GitHub 仓库配置
-const GITHUB_REPO = 'ZeroDeng01/sublinkPro';
-const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
-const GITHUB_API_RELEASES = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+import { GITHUB_API_LATEST_RELEASE, GITHUB_URL } from 'config/githubRepo';
 
 // ==============================|| SIDEBAR - VERSION CARD ||============================== //
 
@@ -81,7 +77,7 @@ function MenuCard() {
     const fetchLatestVersion = async () => {
       setLoading(true);
       try {
-        const res = await fetch(GITHUB_API_RELEASES);
+        const res = await fetch(GITHUB_API_LATEST_RELEASE);
         if (res.ok) {
           const data = await res.json();
           setLatestVersion(data.tag_name || '');
