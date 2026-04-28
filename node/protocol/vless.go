@@ -45,6 +45,17 @@ func init() {
 	}, ConvertProxyToVless, EncodeVLESSURL))
 }
 
+var vlessXHTTPPreservedEmptyStringPaths = map[string]struct{}{
+	"download-settings.reality-opts.*": {},
+	"reality-opts.*":                   {},
+}
+
+var vlessXHTTPRealityOptsPreservedEmptyStringPaths = map[string]struct{}{
+	"public-key": {},
+	"short-id":   {},
+	"spider-x":   {},
+}
+
 type VLESS struct {
 	Name   string      `json:"name"`
 	Uuid   string      `json:"uuid"`
@@ -133,7 +144,7 @@ func buildVLESSProxy(link Urls, config OutputConfig) (Proxy, error) {
 	DeleteOpts(h2Opts)
 	DeleteOpts(httpOpts)
 	DeleteOpts(grpcOpts)
-	DeleteOpts(xhttpOpts)
+	DeleteOptsWithPreservedEmptyStrings(xhttpOpts, vlessXHTTPPreservedEmptyStringPaths)
 	DeleteOpts(realityOpts)
 	tls := vless.Query.Security != "" && vless.Query.Security != "none"
 	skipCert := config.Cert || vless.Query.AllowInsecure == 1
@@ -150,7 +161,7 @@ func buildVLESSProxy(link Urls, config OutputConfig) (Proxy, error) {
 	case "xhttp":
 		finalXHTTPOpts = xhttpOpts
 	}
-	return Proxy{Name: vless.Name, Type: "vless", Server: vless.Server, Port: FlexPort(utils.GetPortInt(vless.Port)), Servername: vless.Query.Sni, Uuid: vless.Uuid, Client_fingerprint: vless.Query.Fp, Network: vless.Query.Type, Flow: vless.Query.Flow, Alpn: vless.Query.Alpn, Packet_encoding: vless.Query.PacketEncoding, Ws_opts: finalWsOpts, H2_opts: finalH2Opts, Http_opts: finalHttpOpts, Grpc_opts: finalGrpcOpts, XHTTP_opts: finalXHTTPOpts, Reality_opts: realityOpts, Udp: config.Udp, Skip_cert_verify: skipCert, Tls: tls, Dialer_proxy: link.DialerProxyName}, nil
+	return Proxy{Name: vless.Name, Type: "vless", Server: vless.Server, Port: FlexPort(utils.GetPortInt(vless.Port)), Servername: vless.Query.Sni, Uuid: vless.Uuid, Client_fingerprint: vless.Query.Fp, Network: vless.Query.Type, Flow: vless.Query.Flow, Alpn: vless.Query.Alpn, Encryption: vless.Query.Encryption, Packet_encoding: vless.Query.PacketEncoding, Ws_opts: finalWsOpts, H2_opts: finalH2Opts, Http_opts: finalHttpOpts, Grpc_opts: finalGrpcOpts, XHTTP_opts: finalXHTTPOpts, Reality_opts: realityOpts, Udp: config.Udp, Skip_cert_verify: skipCert, Tls: tls, Dialer_proxy: link.DialerProxyName}, nil
 }
 
 // EncodeVLESSURL 将 VLESS 结构编码为 v2ray 常见的明文 URL 形式。
@@ -404,8 +415,12 @@ func ConvertProxyToVless(proxy Proxy) VLESS {
 			Flow:           proxy.Flow,
 			Alpn:           proxy.Alpn,
 			Type:           proxy.Network,
+			Encryption:     proxy.Encryption,
 			PacketEncoding: proxy.Packet_encoding,
 		},
+	}
+	if vless.Query.Encryption == "" {
+		vless.Query.Encryption = "none"
 	}
 
 	// 处理跳过证书验证
@@ -566,12 +581,77 @@ func normalizeVLESSXHTTPExtra(extra map[string]interface{}) map[string]interface
 	if xPaddingBytes, ok := extra["xPaddingBytes"]; ok {
 		normalized["x-padding-bytes"] = xPaddingBytes
 	}
+	if reuseSettings, ok := extra["reuseSettings"].(map[string]interface{}); ok && len(reuseSettings) > 0 {
+		if normalizedReuseSettings := normalizeVLESSXHTTPReuseSettings(reuseSettings); len(normalizedReuseSettings) > 0 {
+			normalized["reuse-settings"] = normalizedReuseSettings
+		}
+	}
+	if reuseSettings, ok := extra["reuse-settings"].(map[string]interface{}); ok && len(reuseSettings) > 0 {
+		if normalizedReuseSettings := normalizeVLESSXHTTPReuseSettings(reuseSettings); len(normalizedReuseSettings) > 0 {
+			normalized["reuse-settings"] = normalizedReuseSettings
+		}
+	}
 	if downloadSettings, ok := extra["downloadSettings"].(map[string]interface{}); ok && len(downloadSettings) > 0 {
 		if normalizedDownloadSettings := normalizeVLESSXHTTPDownloadSettings(downloadSettings); len(normalizedDownloadSettings) > 0 {
 			normalized["download-settings"] = normalizedDownloadSettings
 		}
 	}
+	if downloadSettings, ok := extra["download-settings"].(map[string]interface{}); ok && len(downloadSettings) > 0 {
+		if normalizedDownloadSettings := normalizeVLESSXHTTPDownloadSettings(downloadSettings); len(normalizedDownloadSettings) > 0 {
+			normalized["download-settings"] = normalizedDownloadSettings
+		}
+	}
+	DeleteOptsWithPreservedEmptyStrings(normalized, vlessXHTTPPreservedEmptyStringPaths)
+	if len(normalized) == 0 {
+		return nil
+	}
+	return normalized
+}
+
+func normalizeVLESSXHTTPReuseSettings(settings map[string]interface{}) map[string]interface{} {
+	if len(settings) == 0 {
+		return nil
+	}
+	normalized := map[string]interface{}{}
+	for key, value := range settings {
+		switch key {
+		case "maxConcurrency", "max-concurrency":
+			normalized["max-concurrency"] = value
+		case "maxConnections", "max-connections":
+			normalized["max-connections"] = value
+		case "cMaxReuseTimes", "c-max-reuse-times":
+			normalized["c-max-reuse-times"] = value
+		case "hMaxRequestTimes", "h-max-request-times":
+			normalized["h-max-request-times"] = value
+		case "hMaxReusableSecs", "h-max-reusable-secs":
+			normalized["h-max-reusable-secs"] = value
+		case "hKeepAlivePeriod", "h-keep-alive-period":
+			normalized["h-keep-alive-period"] = value
+		}
+	}
 	DeleteOpts(normalized)
+	if len(normalized) == 0 {
+		return nil
+	}
+	return normalized
+}
+
+func normalizeVLESSXHTTPRealityOpts(settings map[string]interface{}) map[string]interface{} {
+	if len(settings) == 0 {
+		return nil
+	}
+	normalized := map[string]interface{}{}
+	for key, value := range settings {
+		switch key {
+		case "publicKey", "public-key":
+			normalized["public-key"] = value
+		case "shortId", "short-id":
+			normalized["short-id"] = value
+		case "spiderX", "spider-x":
+			normalized["spider-x"] = value
+		}
+	}
+	DeleteOptsWithPreservedEmptyStrings(normalized, vlessXHTTPRealityOptsPreservedEmptyStringPaths)
 	if len(normalized) == 0 {
 		return nil
 	}
@@ -593,8 +673,14 @@ func normalizeVLESSXHTTPDownloadSettings(settings map[string]interface{}) map[st
 			normalized["x-padding-bytes"] = value
 		case "echOpts":
 			normalized["ech-opts"] = value
-		case "realityOpts":
-			normalized["reality-opts"] = value
+		case "realityOpts", "reality-opts":
+			if realityOpts, ok := value.(map[string]interface{}); ok && len(realityOpts) > 0 {
+				normalized["reality-opts"] = normalizeVLESSXHTTPRealityOpts(realityOpts)
+			}
+		case "reuseSettings", "reuse-settings":
+			if reuseSettings, ok := value.(map[string]interface{}); ok && len(reuseSettings) > 0 {
+				normalized["reuse-settings"] = normalizeVLESSXHTTPReuseSettings(reuseSettings)
+			}
 		case "skipCertVerify":
 			normalized["skip-cert-verify"] = value
 		case "fingerprint":
@@ -607,7 +693,7 @@ func normalizeVLESSXHTTPDownloadSettings(settings map[string]interface{}) map[st
 			normalized["client-fingerprint"] = value
 		}
 	}
-	DeleteOpts(normalized)
+	DeleteOptsWithPreservedEmptyStrings(normalized, vlessXHTTPPreservedEmptyStringPaths)
 	if len(normalized) == 0 {
 		return nil
 	}
@@ -628,6 +714,11 @@ func buildVLESSXHTTPExtra(xhttpOpts map[string]interface{}) string {
 	if xPaddingBytes, ok := xhttpOpts["x-padding-bytes"]; ok {
 		extra["xPaddingBytes"] = xPaddingBytes
 	}
+	if reuseSettings, ok := xhttpOpts["reuse-settings"].(map[string]interface{}); ok && len(reuseSettings) > 0 {
+		if extraReuseSettings := buildVLESSXHTTPExtraReuseSettings(reuseSettings); len(extraReuseSettings) > 0 {
+			extra["reuseSettings"] = extraReuseSettings
+		}
+	}
 	if downloadSettings, ok := xhttpOpts["download-settings"].(map[string]interface{}); ok && len(downloadSettings) > 0 {
 		if extraDownloadSettings := buildVLESSXHTTPExtraDownloadSettings(downloadSettings); len(extraDownloadSettings) > 0 {
 			extra["downloadSettings"] = extraDownloadSettings
@@ -641,6 +732,54 @@ func buildVLESSXHTTPExtra(xhttpOpts map[string]interface{}) string {
 		return ""
 	}
 	return string(encoded)
+}
+
+func buildVLESSXHTTPExtraReuseSettings(settings map[string]interface{}) map[string]interface{} {
+	if len(settings) == 0 {
+		return nil
+	}
+	extraSettings := map[string]interface{}{}
+	for key, value := range settings {
+		switch key {
+		case "max-concurrency":
+			extraSettings["maxConcurrency"] = value
+		case "max-connections":
+			extraSettings["maxConnections"] = value
+		case "c-max-reuse-times":
+			extraSettings["cMaxReuseTimes"] = value
+		case "h-max-request-times":
+			extraSettings["hMaxRequestTimes"] = value
+		case "h-max-reusable-secs":
+			extraSettings["hMaxReusableSecs"] = value
+		case "h-keep-alive-period":
+			extraSettings["hKeepAlivePeriod"] = value
+		}
+	}
+	if len(extraSettings) == 0 {
+		return nil
+	}
+	return extraSettings
+}
+
+func buildVLESSXHTTPExtraRealityOpts(settings map[string]interface{}) map[string]interface{} {
+	if len(settings) == 0 {
+		return nil
+	}
+	extraSettings := map[string]interface{}{}
+	for key, value := range settings {
+		switch key {
+		case "public-key":
+			extraSettings["publicKey"] = value
+		case "short-id":
+			extraSettings["shortId"] = value
+		case "spider-x":
+			extraSettings["spiderX"] = value
+		}
+	}
+	if len(extraSettings) == 0 {
+		return nil
+	}
+	return extraSettings
 }
 
 func buildVLESSXHTTPExtraDownloadSettings(settings map[string]interface{}) map[string]interface{} {
@@ -659,7 +798,13 @@ func buildVLESSXHTTPExtraDownloadSettings(settings map[string]interface{}) map[s
 		case "ech-opts":
 			extraSettings["echOpts"] = value
 		case "reality-opts":
-			extraSettings["realityOpts"] = value
+			if realityOpts, ok := value.(map[string]interface{}); ok && len(realityOpts) > 0 {
+				extraSettings["realityOpts"] = buildVLESSXHTTPExtraRealityOpts(realityOpts)
+			}
+		case "reuse-settings":
+			if reuseSettings, ok := value.(map[string]interface{}); ok && len(reuseSettings) > 0 {
+				extraSettings["reuseSettings"] = buildVLESSXHTTPExtraReuseSettings(reuseSettings)
+			}
 		case "skip-cert-verify":
 			extraSettings["skipCertVerify"] = value
 		case "private-key":

@@ -106,6 +106,7 @@ type Proxy struct {
 	Version        int      `yaml:"version,omitempty"`        // 版本
 	Token          string   `yaml:"token,omitempty"`          // Tuic 令牌v4
 	// VLESS 特有字段
+	Encryption      string                 `yaml:"encryption,omitempty"`      // VLESS 加密方式
 	Packet_encoding string                 `yaml:"packet-encoding,omitempty"` // VLESS packet-encoding (xudp/packetaddr)
 	H2_opts         map[string]interface{} `yaml:"h2-opts,omitempty"`         // HTTP/2 传输层选项
 	Http_opts       map[string]interface{} `yaml:"http-opts,omitempty"`       // HTTP 传输层选项
@@ -128,19 +129,42 @@ type Urls struct {
 
 // 删除opts中的空值
 func DeleteOpts(opts map[string]interface{}) {
+	deleteOptsWithPreservedEmptyStrings(opts, nil, nil)
+}
+
+// DeleteOptsWithPreservedEmptyStrings 删除空值，但允许按路径保留有语义的空字符串。
+func DeleteOptsWithPreservedEmptyStrings(opts map[string]interface{}, preservedPaths map[string]struct{}) {
+	deleteOptsWithPreservedEmptyStrings(opts, preservedPaths, nil)
+}
+
+func deleteOptsWithPreservedEmptyStrings(opts map[string]interface{}, preservedPaths map[string]struct{}, path []string) {
 	for k, v := range opts {
+		currentPath := append(append([]string{}, path...), k)
 		switch v := v.(type) {
 		case string:
-			if v == "" {
+			if v == "" && !shouldPreserveEmptyStringPath(currentPath, preservedPaths) {
 				delete(opts, k)
 			}
 		case map[string]interface{}:
-			DeleteOpts(v)
+			deleteOptsWithPreservedEmptyStrings(v, preservedPaths, currentPath)
 			if len(v) == 0 {
 				delete(opts, k)
 			}
 		}
 	}
+}
+
+func shouldPreserveEmptyStringPath(path []string, preservedPaths map[string]struct{}) bool {
+	if len(path) == 0 || len(preservedPaths) == 0 {
+		return false
+	}
+	exactPath := strings.Join(path, ".")
+	if _, exists := preservedPaths[exactPath]; exists {
+		return true
+	}
+	wildcardPath := strings.Join(append(append([]string{}, path[:len(path)-1]...), "*"), ".")
+	_, exists := preservedPaths[wildcardPath]
+	return exists
 }
 func convertToInt(value interface{}) (int, error) {
 	switch v := value.(type) {

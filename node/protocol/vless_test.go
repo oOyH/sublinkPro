@@ -276,13 +276,14 @@ func TestVlessXHTTPURLMapping(t *testing.T) {
 
 func TestConvertProxyToVlessXHTTP(t *testing.T) {
 	proxy := Proxy{
-		Name:    "XHTTP节点",
-		Type:    "vless",
-		Server:  "example.com",
-		Port:    443,
-		Uuid:    "12345678-1234-1234-1234-123456789abc",
-		Network: "xhttp",
-		Tls:     true,
+		Name:       "XHTTP节点",
+		Type:       "vless",
+		Server:     "example.com",
+		Port:       443,
+		Uuid:       "12345678-1234-1234-1234-123456789abc",
+		Network:    "xhttp",
+		Tls:        true,
+		Encryption: "none",
 		XHTTP_opts: map[string]interface{}{
 			"path": "/xhttp",
 			"host": "cdn.example.com",
@@ -303,6 +304,7 @@ func TestConvertProxyToVlessXHTTP(t *testing.T) {
 	assertEqualString(t, "Host", "cdn.example.com", vless.Query.Host)
 	assertEqualString(t, "Path", "/xhttp", vless.Query.Path)
 	assertEqualString(t, "Mode", "packet-up", vless.Query.Mode)
+	assertEqualString(t, "Encryption", "none", vless.Query.Encryption)
 
 	extra := parseVLESSXHTTPExtra(vless.Query.Extra)
 	if extra == nil {
@@ -318,6 +320,7 @@ func TestConvertProxyToVlessXHTTP(t *testing.T) {
 
 	encoded := EncodeVLESSURL(vless)
 	assertContains(t, "EncodedType", encoded, "type=xhttp")
+	assertContains(t, "EncodedEncryption", encoded, "encryption=none")
 }
 
 func TestLinkToProxy_VLESSXHTTPSkipCertFollowsSubscriptionConfig(t *testing.T) {
@@ -349,4 +352,170 @@ func TestLinkToProxy_VLESSXHTTPSkipCertFollowsSubscriptionConfig(t *testing.T) {
 		t.Fatal("download-settings 不应为空")
 	}
 	assertEqualBool(t, "DownloadSkipCertVerify", true, downloadSettings["skip-cert-verify"].(bool))
+}
+
+func TestLinkToProxy_VLESSXHTTPPreservesEncryptionAndReuseSettings(t *testing.T) {
+	extra := map[string]interface{}{
+		"reuseSettings": map[string]interface{}{
+			"maxConcurrency":   float64(8),
+			"hKeepAlivePeriod": float64(30),
+		},
+		"downloadSettings": map[string]interface{}{
+			"server":     "dl.example.com",
+			"port":       float64(443),
+			"tls":        true,
+			"serverName": "dl.example.com",
+			"realityOpts": map[string]interface{}{
+				"publicKey": "",
+				"shortId":   "",
+			},
+			"reuseSettings": map[string]interface{}{
+				"maxConcurrency":   float64(16),
+				"hMaxReusableSecs": float64(1800),
+			},
+		},
+	}
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		t.Fatalf("extra 编码失败: %v", err)
+	}
+
+	vless := VLESS{
+		Name:   "XHTTP Reality 复用节点",
+		Uuid:   "12345678-1234-1234-1234-123456789abc",
+		Server: "example.com",
+		Port:   443,
+		Query: VLESSQuery{
+			Security:   "reality",
+			Encryption: "none",
+			Type:       "xhttp",
+			Host:       "cdn.example.com",
+			Path:       "/xhttp",
+			Mode:       "auto",
+			Sni:        "edge.example.com",
+			Pbk:        "outer-public-key",
+			Sid:        "outer-short-id",
+			Extra:      string(extraBytes),
+		},
+	}
+
+	proxy, err := buildVLESSProxy(Urls{Url: EncodeVLESSURL(vless)}, OutputConfig{})
+	if err != nil {
+		t.Fatalf("buildVLESSProxy 失败: %v", err)
+	}
+
+	assertEqualString(t, "Encryption", "none", proxy.Encryption)
+	reuseSettings, ok := proxy.XHTTP_opts["reuse-settings"].(map[string]interface{})
+	if !ok {
+		t.Fatal("reuse-settings 不应为空")
+	}
+	if _, exists := reuseSettings["max-concurrency"]; !exists {
+		t.Fatal("reuse-settings.max-concurrency 应保留")
+	}
+
+	downloadSettings, ok := proxy.XHTTP_opts["download-settings"].(map[string]interface{})
+	if !ok {
+		t.Fatal("download-settings 不应为空")
+	}
+	realityOpts, ok := downloadSettings["reality-opts"].(map[string]interface{})
+	if !ok {
+		t.Fatal("download-settings.reality-opts 不应为空")
+	}
+	publicKey, exists := realityOpts["public-key"]
+	if !exists {
+		t.Fatal("download-settings.reality-opts.public-key 应保留为空字符串")
+	}
+	assertEqualString(t, "DownloadRealityPublicKey", "", publicKey.(string))
+	downloadReuseSettings, ok := downloadSettings["reuse-settings"].(map[string]interface{})
+	if !ok {
+		t.Fatal("download-settings.reuse-settings 不应为空")
+	}
+	if _, exists := downloadReuseSettings["h-max-reusable-secs"]; !exists {
+		t.Fatal("download-settings.reuse-settings.h-max-reusable-secs 应保留")
+	}
+}
+
+func TestConvertProxyToVlessXHTTPPreservesEmptyRealityKeyAndReuseSettings(t *testing.T) {
+	proxy := Proxy{
+		Name:       "XHTTP节点-完整语义",
+		Type:       "vless",
+		Server:     "example.com",
+		Port:       443,
+		Uuid:       "12345678-1234-1234-1234-123456789abc",
+		Network:    "xhttp",
+		Tls:        true,
+		Encryption: "none",
+		XHTTP_opts: map[string]interface{}{
+			"path": "/xhttp",
+			"host": "cdn.example.com",
+			"mode": "auto",
+			"reuse-settings": map[string]interface{}{
+				"max-concurrency":     8,
+				"h-keep-alive-period": 30,
+			},
+			"download-settings": map[string]interface{}{
+				"server": "dl.example.com",
+				"reality-opts": map[string]interface{}{
+					"public-key": "",
+					"short-id":   "",
+				},
+				"reuse-settings": map[string]interface{}{
+					"max-concurrency":     16,
+					"h-max-reusable-secs": 1800,
+				},
+			},
+		},
+	}
+
+	vless := ConvertProxyToVless(proxy)
+	assertEqualString(t, "Encryption", "none", vless.Query.Encryption)
+
+	var rawExtra map[string]interface{}
+	if err := json.Unmarshal([]byte(vless.Query.Extra), &rawExtra); err != nil {
+		t.Fatalf("extra 解析失败: %v", err)
+	}
+	reuseSettings, ok := rawExtra["reuseSettings"].(map[string]interface{})
+	if !ok {
+		t.Fatal("extra.reuseSettings 不应为空")
+	}
+	if _, exists := reuseSettings["maxConcurrency"]; !exists {
+		t.Fatal("extra.reuseSettings.maxConcurrency 应保留")
+	}
+
+	downloadSettings, ok := rawExtra["downloadSettings"].(map[string]interface{})
+	if !ok {
+		t.Fatal("extra.downloadSettings 不应为空")
+	}
+	realityOpts, ok := downloadSettings["realityOpts"].(map[string]interface{})
+	if !ok {
+		t.Fatal("extra.downloadSettings.realityOpts 不应为空")
+	}
+	publicKey, exists := realityOpts["publicKey"]
+	if !exists {
+		t.Fatal("extra.downloadSettings.realityOpts.publicKey 应保留为空字符串")
+	}
+	assertEqualString(t, "ExtraDownloadRealityPublicKey", "", publicKey.(string))
+	downloadReuseSettings, ok := downloadSettings["reuseSettings"].(map[string]interface{})
+	if !ok {
+		t.Fatal("extra.downloadSettings.reuseSettings 不应为空")
+	}
+	if _, exists := downloadReuseSettings["hMaxReusableSecs"]; !exists {
+		t.Fatal("extra.downloadSettings.reuseSettings.hMaxReusableSecs 应保留")
+	}
+
+	normalizedExtra := parseVLESSXHTTPExtra(vless.Query.Extra)
+	if normalizedExtra == nil {
+		t.Fatal("normalized extra 不应为空")
+	}
+	normalizedDownloadSettings, ok := normalizedExtra["download-settings"].(map[string]interface{})
+	if !ok {
+		t.Fatal("normalized download-settings 不应为空")
+	}
+	normalizedRealityOpts, ok := normalizedDownloadSettings["reality-opts"].(map[string]interface{})
+	if !ok {
+		t.Fatal("normalized reality-opts 不应为空")
+	}
+	if normalizedPublicKey, exists := normalizedRealityOpts["public-key"]; !exists || normalizedPublicKey.(string) != "" {
+		t.Fatal("normalized reality-opts.public-key 应保留为空字符串")
+	}
 }
