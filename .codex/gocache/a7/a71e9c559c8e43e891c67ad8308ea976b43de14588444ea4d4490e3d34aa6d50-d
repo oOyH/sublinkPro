@@ -1,7 +1,0 @@
-./client.go
-./doc.go
-./icmp.go
-./packet.go
-./protocol.go
-./quic.go
-./service.go

@@ -1,4 +1,0 @@
-./siv.go
-./siv_amd64.go
-./stub_amd64.go
-./aes_amd64.s

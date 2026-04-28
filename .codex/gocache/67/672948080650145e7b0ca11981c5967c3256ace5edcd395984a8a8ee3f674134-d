@@ -1,7 +1,0 @@
-./adaptive_concurrency.go
-./database_migration.go
-./scheduler_init.go
-./tag_service.go
-./task_manager.go
-./telegram_wrapper.go
-./template_validator.go

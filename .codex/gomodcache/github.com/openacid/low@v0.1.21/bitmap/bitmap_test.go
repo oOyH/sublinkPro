@@ -1,1 +1,0 @@
-package bitmap_test

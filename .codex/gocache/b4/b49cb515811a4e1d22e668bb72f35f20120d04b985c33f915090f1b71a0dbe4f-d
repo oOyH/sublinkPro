@@ -1,6 +1,0 @@
-./ctr.go
-./gcm.go
-./gcm_asm.go
-./gcm_generic.go
-./kipher.go
-./gcm_amd64.s

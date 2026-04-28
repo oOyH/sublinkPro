@@ -1,5 +1,0 @@
-./client.go
-./config.go
-./conn.go
-./server.go
-./upload_queue.go

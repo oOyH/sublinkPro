@@ -1,5 +1,0 @@
-./callbacks.go
-./handlers.go
-./notify.go
-./telegram.go
-./types.go

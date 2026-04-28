@@ -1,5 +1,0 @@
-./client.go
-./frag.go
-./packet.go
-./protocol.go
-./server.go

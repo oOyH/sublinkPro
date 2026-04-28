@@ -1,6 +1,0 @@
-./errors.go
-./mmap_windows.go
-./reader.go
-./result.go
-./traverse.go
-./verifier.go

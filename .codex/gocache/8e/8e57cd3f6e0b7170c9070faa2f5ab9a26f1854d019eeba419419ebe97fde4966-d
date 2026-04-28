@@ -1,7 +1,0 @@
-./conn.go
-./dialer.go
-./dns.go
-./listen.go
-./packet_over_stream.go
-./udp_associate_wrapper.go
-./user_context.go
