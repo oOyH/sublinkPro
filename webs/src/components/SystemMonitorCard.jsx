@@ -24,7 +24,6 @@ import AutorenewIcon from '@mui/icons-material/Autorenew';
 import ComputerIcon from '@mui/icons-material/Computer';
 import StorageIcon from '@mui/icons-material/Storage';
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
-import KeyIcon from '@mui/icons-material/Key';
 
 // project imports
 import { getSystemStats } from 'api/monitor';
@@ -323,32 +322,15 @@ const ConfigItemCard = ({ item, masked = false }) => {
         )}
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', mb: 1 }}>
-        <Chip
-          size="small"
-          icon={<KeyIcon sx={{ fontSize: 14 }} />}
-          label={item.key}
-          sx={{
-            height: 22,
-            fontSize: '0.68rem',
-            bgcolor: withAlpha(theme.palette.primary.main, isDark ? 0.16 : 0.08),
-            color: theme.palette.primary.main,
-            border: `1px solid ${withAlpha(theme.palette.primary.main, isDark ? 0.28 : 0.16)}`,
-            '& .MuiChip-icon': {
-              color: 'inherit',
-              ml: 0.6
-            }
-          }}
-        />
-      </Box>
-
       <Tooltip title={item.value} arrow placement="top-start">
         <Typography
           variant="body2"
           sx={{
             fontWeight: 600,
             color: masked ? maskedTextColor : primaryText,
-            lineHeight: 1.6,
+            lineHeight: 1.45,
+            fontSize: '1.05rem',
+            mb: 0.75,
             wordBreak: 'break-all'
           }}
         >
@@ -784,9 +766,9 @@ const SystemMonitorCard = () => {
                     运行配置参数
                   </Typography>
                 </Box>
-                <Grid container spacing={1.5}>
+                <Grid container spacing={1.25}>
                   {configItems.map((item) => (
-                    <Grid key={`${item.key}-${item.env || 'default'}`} size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Grid key={`${item.key}-${item.env || 'default'}`} size={{ xs: 12, sm: 6, lg: 4 }}>
                       <ConfigItemCard item={item} masked={item.masked} />
                     </Grid>
                   ))}

@@ -1027,18 +1027,33 @@ export default function TaskList() {
             overflow: 'hidden'
           }}
         >
-          <Table size="small">
-            <TableHead sx={{ bgcolor: tokens.tableHeaderSurface }}>
+          <Table
+            size="small"
+            sx={{
+              '& .MuiTableCell-root': {
+                textAlign: 'center',
+                verticalAlign: 'middle'
+              }
+            }}
+          >
+            <TableHead
+              sx={{
+                bgcolor: tokens.tableHeaderSurface,
+                '& .MuiTableCell-root': {
+                  textAlign: 'center'
+                }
+              }}
+            >
               <TableRow>
-                <TableCell>任务名称</TableCell>
-                <TableCell>类型</TableCell>
-                <TableCell>触发方式</TableCell>
-                <TableCell>状态</TableCell>
-                <TableCell>进度</TableCell>
-                <TableCell>流量</TableCell>
-                <TableCell>创建时间</TableCell>
-                <TableCell>耗时</TableCell>
-                {hasStoppableTasks && <TableCell>操作</TableCell>}
+                <TableCell align="center">任务名称</TableCell>
+                <TableCell align="center">类型</TableCell>
+                <TableCell align="center">触发方式</TableCell>
+                <TableCell align="center">状态</TableCell>
+                <TableCell align="center">进度</TableCell>
+                <TableCell align="center">流量</TableCell>
+                <TableCell align="center">创建时间</TableCell>
+                <TableCell align="center">耗时</TableCell>
+                {hasStoppableTasks && <TableCell align="center">操作</TableCell>}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -1062,7 +1077,7 @@ export default function TaskList() {
                         }
                       }}
                     >
-                      <TableCell>
+                      <TableCell align="center">
                         <Typography variant="body2" sx={{ fontWeight: 500, color: tokens.primaryText }}>
                           {task.name}
                         </Typography>
@@ -1071,7 +1086,7 @@ export default function TaskList() {
                             <Typography
                               variant="caption"
                               noWrap
-                              sx={{ maxWidth: 200, display: 'block', cursor: 'help', color: tokens.secondaryText }}
+                              sx={{ maxWidth: 200, mx: 'auto', display: 'block', cursor: 'help', color: tokens.secondaryText }}
                             >
                               {task.message}
                             </Typography>
@@ -1082,7 +1097,7 @@ export default function TaskList() {
                             <Typography
                               variant="caption"
                               color="info.main"
-                              sx={{ mt: 0.5, display: 'block', fontWeight: 600, maxWidth: 220 }}
+                              sx={{ mt: 0.5, mx: 'auto', display: 'block', fontWeight: 600, maxWidth: 220 }}
                               noWrap
                             >
                               {taskUnlockSummary.text}
@@ -1100,21 +1115,21 @@ export default function TaskList() {
                           </Button>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <TypeChip type={task.type} theme={theme} tokens={tokens} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <TriggerChip trigger={task.trigger} theme={theme} tokens={tokens} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <StatusChip status={task.status} theme={theme} tokens={tokens} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <Typography variant="body2" sx={{ color: tokens.primaryText }}>
                           {task.progress}/{task.total}
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         {task.type === 'speed_test'
                           ? (() => {
                               try {
@@ -1150,14 +1165,14 @@ export default function TaskList() {
                             })()
                           : '-'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <Tooltip title={task.createdAt ? new Date(task.createdAt).toLocaleString('zh-CN') : ''}>
                           <Typography variant="caption" sx={{ color: tokens.secondaryText }}>
                             {formatDate(task.createdAt)}
                           </Typography>
                         </Tooltip>
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <Typography
                           variant="caption"
                           sx={{
@@ -1169,7 +1184,7 @@ export default function TaskList() {
                         </Typography>
                       </TableCell>
                       {hasStoppableTasks && (
-                        <TableCell>
+                        <TableCell align="center">
                           {task.status === 'running' && ['speed_test', 'sub_update'].includes(task.type) && (
                             <Tooltip title="停止">
                               <IconButton

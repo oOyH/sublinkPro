@@ -67,7 +67,8 @@ export default function NodeTable({
     px: 0.75,
     py: 0.75,
     whiteSpace: 'nowrap',
-    verticalAlign: 'top'
+    verticalAlign: 'top',
+    textAlign: 'center'
   };
 
   return (
@@ -100,23 +101,25 @@ export default function NodeTable({
             '& .MuiTableCell-root': {
               bgcolor: tokens.toolbarSurface,
               color: tokens.primaryText,
-              borderBottomColor: tokens.softBorder
+              borderBottomColor: tokens.softBorder,
+              textAlign: 'center'
             }
           }}
         >
           <TableRow>
             <TableCell padding="checkbox" />
-            <TableCell sx={{ minWidth: 132 }}>备注</TableCell>
-            <TableCell sx={{ minWidth: 88 }}>分组</TableCell>
-            <TableCell sx={{ minWidth: 88 }}>来源</TableCell>
-            <TableCell sx={{ minWidth: 92, whiteSpace: 'nowrap' }}>标签</TableCell>
-            <TableCell sx={{ minWidth: 64, whiteSpace: 'nowrap' }}>国家</TableCell>
-            <TableCell sx={{ minWidth: 168 }} sortDirection={sortBy === 'delay' || sortBy === 'speed' ? sortOrder : false}>
-              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ whiteSpace: 'nowrap' }}>
+            <TableCell sx={{ minWidth: 132, textAlign: 'center' }}>备注</TableCell>
+            <TableCell sx={{ minWidth: 88, textAlign: 'center' }}>分组</TableCell>
+            <TableCell sx={{ minWidth: 88, textAlign: 'center' }}>来源</TableCell>
+            <TableCell sx={{ minWidth: 92, whiteSpace: 'nowrap', textAlign: 'center' }}>标签</TableCell>
+            <TableCell sx={{ minWidth: 64, whiteSpace: 'nowrap', textAlign: 'center' }}>国家</TableCell>
+            <TableCell sx={{ minWidth: 196, textAlign: 'center' }} sortDirection={sortBy === 'delay' || sortBy === 'speed' ? sortOrder : false}>
+              <Stack direction="row" spacing={3} alignItems="center" justifyContent="center" sx={{ whiteSpace: 'nowrap' }}>
                 <TableSortLabel
                   active={sortBy === 'delay'}
                   direction={sortBy === 'delay' ? sortOrder : 'asc'}
                   onClick={() => onSort('delay')}
+                  sx={{ '& .MuiTableSortLabel-icon': { ml: 0.25 } }}
                 >
                   延迟
                 </TableSortLabel>
@@ -124,13 +127,14 @@ export default function NodeTable({
                   active={sortBy === 'speed'}
                   direction={sortBy === 'speed' ? sortOrder : 'asc'}
                   onClick={() => onSort('speed')}
+                  sx={{ '& .MuiTableSortLabel-icon': { ml: 0.25 } }}
                 >
                   速度
                 </TableSortLabel>
               </Stack>
             </TableCell>
-            <TableCell sx={{ minWidth: 128, whiteSpace: 'nowrap' }}>IP特征</TableCell>
-            <TableCell align="right" sx={{ minWidth: 104, pr: 0.5 }}>
+            <TableCell sx={{ minWidth: 128, whiteSpace: 'nowrap', textAlign: 'center' }}>IP特征</TableCell>
+            <TableCell align="center" sx={{ minWidth: 104, pr: 0.5 }}>
               操作
             </TableCell>
           </TableRow>
@@ -151,23 +155,25 @@ export default function NodeTable({
               <TableCell padding="checkbox">
                 <Checkbox checked={isSelected(node)} onChange={() => onSelect(node)} />
               </TableCell>
-              <TableCell>
+              <TableCell align="center">
                 <Tooltip title={node.Name}>
                   <Typography
                     variant="body2"
                     fontWeight="medium"
                     sx={{
                       maxWidth: '180px',
+                      mx: 'auto',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      textAlign: 'center'
                     }}
                   >
                     {node.Name}
                   </Typography>
                 </Tooltip>
               </TableCell>
-              <TableCell>
+              <TableCell align="center">
                 {node.Group ? (
                   <Tooltip title={node.Group}>
                     <Chip
@@ -184,7 +190,7 @@ export default function NodeTable({
                   </Typography>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell align="center">
                 {node.Source ? (
                   <Tooltip title={node.Source === 'manual' ? '手动添加' : node.Source}>
                     <Chip
@@ -201,9 +207,9 @@ export default function NodeTable({
                   </Typography>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell align="center">
                 {node.Tags ? (
-                  <Box sx={{ display: 'flex', gap: 0.375, flexWrap: 'wrap', maxWidth: 180 }}>
+                  <Box sx={{ display: 'flex', gap: 0.375, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 180, mx: 'auto' }}>
                     {node.Tags.split(',')
                       .filter((t) => t.trim())
                       .map((tag, idx) => {
@@ -225,17 +231,17 @@ export default function NodeTable({
                   </Typography>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell align="center">
                 {node.LinkCountry ? (
                   <Chip label={formatCountry(node.LinkCountry)} color="secondary" variant="outlined" size="small" />
                 ) : (
                   '-'
                 )}
               </TableCell>
-              <TableCell>
-                <Stack spacing={0.75} sx={{ minWidth: 0 }}>
-                  <Stack direction="row" spacing={0.75} alignItems="flex-start" flexWrap="wrap" useFlexGap>
-                    <Box>
+              <TableCell align="center">
+                <Stack spacing={0.75} sx={{ minWidth: 0, alignItems: 'center' }}>
+                  <Stack direction="row" spacing={2.25} alignItems="flex-start" justifyContent="center">
+                    <Box sx={{ minWidth: 72, textAlign: 'center' }}>
                       {(() => {
                         const d = getDelayDisplay(node.DelayTime, node.DelayStatus);
                         return <Chip label={d.label} color={d.color} variant={d.variant} size="small" />;
@@ -250,7 +256,7 @@ export default function NodeTable({
                         </Typography>
                       )}
                     </Box>
-                    <Box>
+                    <Box sx={{ minWidth: 72, textAlign: 'center' }}>
                       {(() => {
                         const s = getSpeedDisplay(node.Speed, node.SpeedStatus);
                         return <Chip label={s.label} color={s.color} variant={s.variant} size="small" />;
@@ -268,7 +274,7 @@ export default function NodeTable({
                   </Stack>
                 </Stack>
               </TableCell>
-              <TableCell>
+              <TableCell align="center">
                 {(() => {
                   const ipTypeDisplay = getIpTypeDisplay(
                     node.IsBroadcast,
@@ -298,7 +304,7 @@ export default function NodeTable({
                     residentialDisplay.label === fraudScoreDisplay.label;
 
                   return (
-                    <Box sx={{ display: 'flex', gap: 0.375, flexWrap: 'wrap', minWidth: 0, maxWidth: 160 }}>
+                    <Box sx={{ display: 'flex', gap: 0.375, flexWrap: 'wrap', justifyContent: 'center', minWidth: 0, maxWidth: 160, mx: 'auto' }}>
                       {isUntested ? (
                         <Chip label="未检测" color="default" variant="outlined" size="small" />
                       ) : shouldMergeQualityTags ? (
@@ -400,7 +406,7 @@ export default function NodeTable({
                   );
                 })()}
               </TableCell>
-              <TableCell align="right" sx={{ pr: 0.5 }}>
+              <TableCell align="center" sx={{ pr: 0.5 }}>
                 <Tooltip title="检测">
                   <IconButton size="small" onClick={() => onSpeedTest(node)}>
                     <SpeedIcon fontSize="small" />
