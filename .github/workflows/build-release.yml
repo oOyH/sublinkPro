@@ -294,8 +294,8 @@ jobs:
             TAG=${GITHUB_REF#refs/tags/}
             docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64 \
               -f Dockerfile.ci \
-              -t zerodeng/sublink-pro:${TAG} \
-              -t zerodeng/sublink-pro:latest \
+              -t supertian7/sublink-pro:${TAG} \
+              -t supertian7/sublink-pro:latest \
               --push .
           else
             # 分支推送：dev 和 main 分支统一使用 dev 标签，其他分支使用分支名
@@ -308,6 +308,6 @@ jobs:
             fi
             docker buildx build --no-cache --pull --platform linux/amd64,linux/arm64 \
               -f Dockerfile.ci \
-              -t zerodeng/sublink-pro:${DOCKER_TAG} \
+              -t supertian7/sublink-pro:${DOCKER_TAG} \
               --push .
           fi
