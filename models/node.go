@@ -128,15 +128,7 @@ func NormalizeNodeForImport(node *Node) {
 	}
 
 	if node.Link != "" {
-		node.syncLinkHash()
-		if node.Protocol == "" {
-			node.Protocol = protocol.GetProtocolFromLink(node.Link)
-		}
-		if node.ContentHash == "" {
-			if proxy, err := protocol.LinkToProxy(protocol.Urls{Url: node.Link}, protocol.OutputConfig{}); err == nil {
-				node.ContentHash = protocol.GenerateProxyContentHash(proxy)
-			}
-		}
+		normalizeStoredNodeLink(node)
 	}
 
 	if node.SpeedStatus == "" {
@@ -190,12 +182,52 @@ func NormalizeNodeForImport(node *Node) {
 	}
 }
 
+func normalizeStoredNodeLink(node *Node) {
+	if node == nil || node.Link == "" {
+		return
+	}
+
+	if proxy, err := protocol.LinkToProxy(protocol.Urls{Url: node.Link}, protocol.OutputConfig{}); err == nil {
+		if proxy.Type == "vless" && proxy.Network == "xhttp" {
+			if normalizedLink, encodeErr := protocol.EncodeProxyLink(proxy); encodeErr == nil && normalizedLink != "" {
+				node.Link = normalizedLink
+			}
+		}
+		if contentHash := protocol.GenerateProxyContentHash(proxy); contentHash != "" {
+			node.ContentHash = contentHash
+		}
+	}
+
+	node.syncLinkHash()
+	if protocolName := protocol.GetProtocolFromLink(node.Link); protocolName != "" {
+		node.Protocol = protocolName
+	}
+}
+
 // InitNodeCache 初始化节点缓存
 func InitNodeCache() error {
 	utils.Info("加载节点列表到缓存")
 	var nodes []Node
 	if err := database.DB.Find(&nodes).Error; err != nil {
 		return err
+	}
+
+	for i := range nodes {
+		originalLink := nodes[i].Link
+		originalLinkHash := nodes[i].LinkHash
+		originalProtocol := nodes[i].Protocol
+		originalContentHash := nodes[i].ContentHash
+		NormalizeNodeForImport(&nodes[i])
+		if nodes[i].Link != originalLink || nodes[i].LinkHash != originalLinkHash || nodes[i].Protocol != originalProtocol || nodes[i].ContentHash != originalContentHash {
+			if err := database.DB.Model(&Node{}).Where("id = ?", nodes[i].ID).Updates(map[string]interface{}{
+				"link":         nodes[i].Link,
+				"link_hash":    nodes[i].LinkHash,
+				"protocol":     nodes[i].Protocol,
+				"content_hash": nodes[i].ContentHash,
+			}).Error; err != nil {
+				utils.Warn("节点【%d】规范化回写失败: %v", nodes[i].ID, err)
+			}
+		}
 	}
 
 	// 使用批量加载方式初始化缓存

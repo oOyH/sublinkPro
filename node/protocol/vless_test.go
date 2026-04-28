@@ -356,15 +356,22 @@ func TestLinkToProxy_VLESSXHTTPSkipCertFollowsSubscriptionConfig(t *testing.T) {
 
 func TestLinkToProxy_VLESSXHTTPPreservesEncryptionAndReuseSettings(t *testing.T) {
 	extra := map[string]interface{}{
+		"uplinkHTTPMethod": "PUT",
+		"sessionPlacement": "path",
+		"seqKey":           "x-seq",
+		"xPaddingObfsMode": true,
 		"reuseSettings": map[string]interface{}{
 			"maxConcurrency":   float64(8),
 			"hKeepAlivePeriod": float64(30),
 		},
 		"downloadSettings": map[string]interface{}{
-			"server":     "dl.example.com",
-			"port":       float64(443),
-			"tls":        true,
-			"serverName": "dl.example.com",
+			"server":               "dl.example.com",
+			"port":                 float64(443),
+			"tls":                  true,
+			"serverName":           "dl.example.com",
+			"uplinkDataPlacement":  "body",
+			"uplinkDataKey":        "x-up",
+			"scMinPostsIntervalMs": "20",
 			"realityOpts": map[string]interface{}{
 				"publicKey": "",
 				"shortId":   "",
@@ -412,11 +419,18 @@ func TestLinkToProxy_VLESSXHTTPPreservesEncryptionAndReuseSettings(t *testing.T)
 	if _, exists := reuseSettings["max-concurrency"]; !exists {
 		t.Fatal("reuse-settings.max-concurrency 应保留")
 	}
+	assertEqualString(t, "RootUplinkHTTPMethod", "PUT", proxy.XHTTP_opts["uplink-http-method"].(string))
+	assertEqualString(t, "RootSessionPlacement", "path", proxy.XHTTP_opts["session-placement"].(string))
+	assertEqualString(t, "RootSeqKey", "x-seq", proxy.XHTTP_opts["seq-key"].(string))
+	assertEqualBool(t, "RootXPaddingObfsMode", true, proxy.XHTTP_opts["x-padding-obfs-mode"].(bool))
 
 	downloadSettings, ok := proxy.XHTTP_opts["download-settings"].(map[string]interface{})
 	if !ok {
 		t.Fatal("download-settings 不应为空")
 	}
+	assertEqualString(t, "DownloadUplinkDataPlacement", "body", downloadSettings["uplink-data-placement"].(string))
+	assertEqualString(t, "DownloadUplinkDataKey", "x-up", downloadSettings["uplink-data-key"].(string))
+	assertEqualString(t, "DownloadScMinPostsIntervalMs", "20", downloadSettings["sc-min-posts-interval-ms"].(string))
 	realityOpts, ok := downloadSettings["reality-opts"].(map[string]interface{})
 	if !ok {
 		t.Fatal("download-settings.reality-opts 不应为空")
@@ -446,15 +460,22 @@ func TestConvertProxyToVlessXHTTPPreservesEmptyRealityKeyAndReuseSettings(t *tes
 		Tls:        true,
 		Encryption: "none",
 		XHTTP_opts: map[string]interface{}{
-			"path": "/xhttp",
-			"host": "cdn.example.com",
-			"mode": "auto",
+			"path":                "/xhttp",
+			"host":                "cdn.example.com",
+			"mode":                "auto",
+			"uplink-http-method":  "PUT",
+			"session-placement":   "path",
+			"seq-key":             "x-seq",
+			"x-padding-obfs-mode": true,
 			"reuse-settings": map[string]interface{}{
 				"max-concurrency":     8,
 				"h-keep-alive-period": 30,
 			},
 			"download-settings": map[string]interface{}{
-				"server": "dl.example.com",
+				"server":                   "dl.example.com",
+				"uplink-data-placement":    "body",
+				"uplink-data-key":          "x-up",
+				"sc-min-posts-interval-ms": "20",
 				"reality-opts": map[string]interface{}{
 					"public-key": "",
 					"short-id":   "",
@@ -481,11 +502,18 @@ func TestConvertProxyToVlessXHTTPPreservesEmptyRealityKeyAndReuseSettings(t *tes
 	if _, exists := reuseSettings["maxConcurrency"]; !exists {
 		t.Fatal("extra.reuseSettings.maxConcurrency 应保留")
 	}
+	assertEqualString(t, "ExtraUplinkHTTPMethod", "PUT", rawExtra["uplinkHTTPMethod"].(string))
+	assertEqualString(t, "ExtraSessionPlacement", "path", rawExtra["sessionPlacement"].(string))
+	assertEqualString(t, "ExtraSeqKey", "x-seq", rawExtra["seqKey"].(string))
+	assertEqualBool(t, "ExtraXPaddingObfsMode", true, rawExtra["xPaddingObfsMode"].(bool))
 
 	downloadSettings, ok := rawExtra["downloadSettings"].(map[string]interface{})
 	if !ok {
 		t.Fatal("extra.downloadSettings 不应为空")
 	}
+	assertEqualString(t, "ExtraDownloadUplinkDataPlacement", "body", downloadSettings["uplinkDataPlacement"].(string))
+	assertEqualString(t, "ExtraDownloadUplinkDataKey", "x-up", downloadSettings["uplinkDataKey"].(string))
+	assertEqualString(t, "ExtraDownloadScMinPostsIntervalMs", "20", downloadSettings["scMinPostsIntervalMs"].(string))
 	realityOpts, ok := downloadSettings["realityOpts"].(map[string]interface{})
 	if !ok {
 		t.Fatal("extra.downloadSettings.realityOpts 不应为空")
@@ -511,6 +539,13 @@ func TestConvertProxyToVlessXHTTPPreservesEmptyRealityKeyAndReuseSettings(t *tes
 	if !ok {
 		t.Fatal("normalized download-settings 不应为空")
 	}
+	assertEqualString(t, "NormalizedUplinkHTTPMethod", "PUT", normalizedExtra["uplink-http-method"].(string))
+	assertEqualString(t, "NormalizedSessionPlacement", "path", normalizedExtra["session-placement"].(string))
+	assertEqualString(t, "NormalizedSeqKey", "x-seq", normalizedExtra["seq-key"].(string))
+	assertEqualBool(t, "NormalizedXPaddingObfsMode", true, normalizedExtra["x-padding-obfs-mode"].(bool))
+	assertEqualString(t, "NormalizedDownloadUplinkDataPlacement", "body", normalizedDownloadSettings["uplink-data-placement"].(string))
+	assertEqualString(t, "NormalizedDownloadUplinkDataKey", "x-up", normalizedDownloadSettings["uplink-data-key"].(string))
+	assertEqualString(t, "NormalizedDownloadScMinPostsIntervalMs", "20", normalizedDownloadSettings["sc-min-posts-interval-ms"].(string))
 	normalizedRealityOpts, ok := normalizedDownloadSettings["reality-opts"].(map[string]interface{})
 	if !ok {
 		t.Fatal("normalized reality-opts 不应为空")

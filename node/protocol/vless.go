@@ -56,6 +56,67 @@ var vlessXHTTPRealityOptsPreservedEmptyStringPaths = map[string]struct{}{
 	"spider-x":   {},
 }
 
+type vlessXHTTPFieldMapping struct {
+	Normalized string
+	ExtraKeys  []string
+	BuildKey   string
+}
+
+var vlessXHTTPExtraFieldMappings = []vlessXHTTPFieldMapping{
+	{Normalized: "headers", ExtraKeys: []string{"headers"}, BuildKey: "headers"},
+	{Normalized: "no-grpc-header", ExtraKeys: []string{"noGRPCHeader", "no-grpc-header"}, BuildKey: "noGRPCHeader"},
+	{Normalized: "x-padding-bytes", ExtraKeys: []string{"xPaddingBytes", "x-padding-bytes"}, BuildKey: "xPaddingBytes"},
+	{Normalized: "x-padding-obfs-mode", ExtraKeys: []string{"xPaddingObfsMode", "x-padding-obfs-mode"}, BuildKey: "xPaddingObfsMode"},
+	{Normalized: "x-padding-key", ExtraKeys: []string{"xPaddingKey", "x-padding-key"}, BuildKey: "xPaddingKey"},
+	{Normalized: "x-padding-header", ExtraKeys: []string{"xPaddingHeader", "x-padding-header"}, BuildKey: "xPaddingHeader"},
+	{Normalized: "x-padding-placement", ExtraKeys: []string{"xPaddingPlacement", "x-padding-placement"}, BuildKey: "xPaddingPlacement"},
+	{Normalized: "x-padding-method", ExtraKeys: []string{"xPaddingMethod", "x-padding-method"}, BuildKey: "xPaddingMethod"},
+	{Normalized: "uplink-http-method", ExtraKeys: []string{"uplinkHTTPMethod", "uplink-http-method"}, BuildKey: "uplinkHTTPMethod"},
+	{Normalized: "session-placement", ExtraKeys: []string{"sessionPlacement", "session-placement"}, BuildKey: "sessionPlacement"},
+	{Normalized: "session-key", ExtraKeys: []string{"sessionKey", "session-key"}, BuildKey: "sessionKey"},
+	{Normalized: "seq-placement", ExtraKeys: []string{"seqPlacement", "seq-placement"}, BuildKey: "seqPlacement"},
+	{Normalized: "seq-key", ExtraKeys: []string{"seqKey", "seq-key"}, BuildKey: "seqKey"},
+	{Normalized: "uplink-data-placement", ExtraKeys: []string{"uplinkDataPlacement", "uplink-data-placement"}, BuildKey: "uplinkDataPlacement"},
+	{Normalized: "uplink-data-key", ExtraKeys: []string{"uplinkDataKey", "uplink-data-key"}, BuildKey: "uplinkDataKey"},
+	{Normalized: "uplink-chunk-size", ExtraKeys: []string{"uplinkChunkSize", "uplink-chunk-size"}, BuildKey: "uplinkChunkSize"},
+	{Normalized: "sc-max-each-post-bytes", ExtraKeys: []string{"scMaxEachPostBytes", "sc-max-each-post-bytes"}, BuildKey: "scMaxEachPostBytes"},
+	{Normalized: "sc-min-posts-interval-ms", ExtraKeys: []string{"scMinPostsIntervalMs", "sc-min-posts-interval-ms"}, BuildKey: "scMinPostsIntervalMs"},
+}
+
+var vlessXHTTPDownloadFieldMappings = []vlessXHTTPFieldMapping{
+	{Normalized: "path", ExtraKeys: []string{"path"}, BuildKey: "path"},
+	{Normalized: "host", ExtraKeys: []string{"host"}, BuildKey: "host"},
+	{Normalized: "headers", ExtraKeys: []string{"headers"}, BuildKey: "headers"},
+	{Normalized: "no-grpc-header", ExtraKeys: []string{"noGRPCHeader", "no-grpc-header"}, BuildKey: "noGRPCHeader"},
+	{Normalized: "x-padding-bytes", ExtraKeys: []string{"xPaddingBytes", "x-padding-bytes"}, BuildKey: "xPaddingBytes"},
+	{Normalized: "x-padding-obfs-mode", ExtraKeys: []string{"xPaddingObfsMode", "x-padding-obfs-mode"}, BuildKey: "xPaddingObfsMode"},
+	{Normalized: "x-padding-key", ExtraKeys: []string{"xPaddingKey", "x-padding-key"}, BuildKey: "xPaddingKey"},
+	{Normalized: "x-padding-header", ExtraKeys: []string{"xPaddingHeader", "x-padding-header"}, BuildKey: "xPaddingHeader"},
+	{Normalized: "x-padding-placement", ExtraKeys: []string{"xPaddingPlacement", "x-padding-placement"}, BuildKey: "xPaddingPlacement"},
+	{Normalized: "x-padding-method", ExtraKeys: []string{"xPaddingMethod", "x-padding-method"}, BuildKey: "xPaddingMethod"},
+	{Normalized: "uplink-http-method", ExtraKeys: []string{"uplinkHTTPMethod", "uplink-http-method"}, BuildKey: "uplinkHTTPMethod"},
+	{Normalized: "session-placement", ExtraKeys: []string{"sessionPlacement", "session-placement"}, BuildKey: "sessionPlacement"},
+	{Normalized: "session-key", ExtraKeys: []string{"sessionKey", "session-key"}, BuildKey: "sessionKey"},
+	{Normalized: "seq-placement", ExtraKeys: []string{"seqPlacement", "seq-placement"}, BuildKey: "seqPlacement"},
+	{Normalized: "seq-key", ExtraKeys: []string{"seqKey", "seq-key"}, BuildKey: "seqKey"},
+	{Normalized: "uplink-data-placement", ExtraKeys: []string{"uplinkDataPlacement", "uplink-data-placement"}, BuildKey: "uplinkDataPlacement"},
+	{Normalized: "uplink-data-key", ExtraKeys: []string{"uplinkDataKey", "uplink-data-key"}, BuildKey: "uplinkDataKey"},
+	{Normalized: "uplink-chunk-size", ExtraKeys: []string{"uplinkChunkSize", "uplink-chunk-size"}, BuildKey: "uplinkChunkSize"},
+	{Normalized: "sc-max-each-post-bytes", ExtraKeys: []string{"scMaxEachPostBytes", "sc-max-each-post-bytes"}, BuildKey: "scMaxEachPostBytes"},
+	{Normalized: "sc-min-posts-interval-ms", ExtraKeys: []string{"scMinPostsIntervalMs", "sc-min-posts-interval-ms"}, BuildKey: "scMinPostsIntervalMs"},
+	{Normalized: "server", ExtraKeys: []string{"server"}, BuildKey: "server"},
+	{Normalized: "port", ExtraKeys: []string{"port"}, BuildKey: "port"},
+	{Normalized: "tls", ExtraKeys: []string{"tls"}, BuildKey: "tls"},
+	{Normalized: "alpn", ExtraKeys: []string{"alpn"}, BuildKey: "alpn"},
+	{Normalized: "ech-opts", ExtraKeys: []string{"echOpts", "ech-opts"}, BuildKey: "echOpts"},
+	{Normalized: "skip-cert-verify", ExtraKeys: []string{"skipCertVerify", "skip-cert-verify"}, BuildKey: "skipCertVerify"},
+	{Normalized: "fingerprint", ExtraKeys: []string{"fingerprint"}, BuildKey: "fingerprint"},
+	{Normalized: "certificate", ExtraKeys: []string{"certificate"}, BuildKey: "certificate"},
+	{Normalized: "private-key", ExtraKeys: []string{"privateKey", "private-key"}, BuildKey: "privateKey"},
+	{Normalized: "servername", ExtraKeys: []string{"serverName", "servername"}, BuildKey: "serverName"},
+	{Normalized: "client-fingerprint", ExtraKeys: []string{"clientFingerprint", "client-fingerprint"}, BuildKey: "clientFingerprint"},
+}
+
 type VLESS struct {
 	Name   string      `json:"name"`
 	Uuid   string      `json:"uuid"`
@@ -567,19 +628,48 @@ func parseVLESSXHTTPExtra(extra string) map[string]interface{} {
 	return normalizeVLESSXHTTPExtra(parsed)
 }
 
+func normalizeVLESSXHTTPMappedFields(source map[string]interface{}, mappings []vlessXHTTPFieldMapping) map[string]interface{} {
+	if len(source) == 0 || len(mappings) == 0 {
+		return nil
+	}
+	normalized := map[string]interface{}{}
+	for _, mapping := range mappings {
+		for _, key := range mapping.ExtraKeys {
+			if value, ok := source[key]; ok {
+				normalized[mapping.Normalized] = value
+				break
+			}
+		}
+	}
+	if len(normalized) == 0 {
+		return nil
+	}
+	return normalized
+}
+
+func buildVLESSXHTTPMappedFields(source map[string]interface{}, mappings []vlessXHTTPFieldMapping) map[string]interface{} {
+	if len(source) == 0 || len(mappings) == 0 {
+		return nil
+	}
+	extra := map[string]interface{}{}
+	for _, mapping := range mappings {
+		if value, ok := source[mapping.Normalized]; ok {
+			extra[mapping.BuildKey] = value
+		}
+	}
+	if len(extra) == 0 {
+		return nil
+	}
+	return extra
+}
+
 func normalizeVLESSXHTTPExtra(extra map[string]interface{}) map[string]interface{} {
 	if len(extra) == 0 {
 		return nil
 	}
-	normalized := map[string]interface{}{}
-	if headers, ok := extra["headers"].(map[string]interface{}); ok && len(headers) > 0 {
-		normalized["headers"] = headers
-	}
-	if noGRPCHeader, ok := extra["noGRPCHeader"]; ok {
-		normalized["no-grpc-header"] = noGRPCHeader
-	}
-	if xPaddingBytes, ok := extra["xPaddingBytes"]; ok {
-		normalized["x-padding-bytes"] = xPaddingBytes
+	normalized := normalizeVLESSXHTTPMappedFields(extra, vlessXHTTPExtraFieldMappings)
+	if normalized == nil {
+		normalized = map[string]interface{}{}
 	}
 	if reuseSettings, ok := extra["reuseSettings"].(map[string]interface{}); ok && len(reuseSettings) > 0 {
 		if normalizedReuseSettings := normalizeVLESSXHTTPReuseSettings(reuseSettings); len(normalizedReuseSettings) > 0 {
@@ -662,35 +752,24 @@ func normalizeVLESSXHTTPDownloadSettings(settings map[string]interface{}) map[st
 	if len(settings) == 0 {
 		return nil
 	}
-	normalized := map[string]interface{}{}
-	for key, value := range settings {
-		switch key {
-		case "path", "host", "headers", "server", "port", "tls", "alpn", "certificate", "servername":
-			normalized[key] = value
-		case "noGRPCHeader":
-			normalized["no-grpc-header"] = value
-		case "xPaddingBytes":
-			normalized["x-padding-bytes"] = value
-		case "echOpts":
-			normalized["ech-opts"] = value
-		case "realityOpts", "reality-opts":
+	normalized := normalizeVLESSXHTTPMappedFields(settings, vlessXHTTPDownloadFieldMappings)
+	if normalized == nil {
+		normalized = map[string]interface{}{}
+	}
+	for _, key := range []string{"realityOpts", "reality-opts"} {
+		if value, ok := settings[key]; ok {
 			if realityOpts, ok := value.(map[string]interface{}); ok && len(realityOpts) > 0 {
 				normalized["reality-opts"] = normalizeVLESSXHTTPRealityOpts(realityOpts)
 			}
-		case "reuseSettings", "reuse-settings":
+			break
+		}
+	}
+	for _, key := range []string{"reuseSettings", "reuse-settings"} {
+		if value, ok := settings[key]; ok {
 			if reuseSettings, ok := value.(map[string]interface{}); ok && len(reuseSettings) > 0 {
 				normalized["reuse-settings"] = normalizeVLESSXHTTPReuseSettings(reuseSettings)
 			}
-		case "skipCertVerify":
-			normalized["skip-cert-verify"] = value
-		case "fingerprint":
-			normalized["fingerprint"] = value
-		case "privateKey":
-			normalized["private-key"] = value
-		case "serverName":
-			normalized["servername"] = value
-		case "clientFingerprint":
-			normalized["client-fingerprint"] = value
+			break
 		}
 	}
 	DeleteOptsWithPreservedEmptyStrings(normalized, vlessXHTTPPreservedEmptyStringPaths)
@@ -704,15 +783,9 @@ func buildVLESSXHTTPExtra(xhttpOpts map[string]interface{}) string {
 	if len(xhttpOpts) == 0 {
 		return ""
 	}
-	extra := map[string]interface{}{}
-	if headers, ok := xhttpOpts["headers"].(map[string]interface{}); ok && len(headers) > 0 {
-		extra["headers"] = headers
-	}
-	if noGRPCHeader, ok := xhttpOpts["no-grpc-header"]; ok {
-		extra["noGRPCHeader"] = noGRPCHeader
-	}
-	if xPaddingBytes, ok := xhttpOpts["x-padding-bytes"]; ok {
-		extra["xPaddingBytes"] = xPaddingBytes
+	extra := buildVLESSXHTTPMappedFields(xhttpOpts, vlessXHTTPExtraFieldMappings)
+	if extra == nil {
+		extra = map[string]interface{}{}
 	}
 	if reuseSettings, ok := xhttpOpts["reuse-settings"].(map[string]interface{}); ok && len(reuseSettings) > 0 {
 		if extraReuseSettings := buildVLESSXHTTPExtraReuseSettings(reuseSettings); len(extraReuseSettings) > 0 {
@@ -786,32 +859,15 @@ func buildVLESSXHTTPExtraDownloadSettings(settings map[string]interface{}) map[s
 	if len(settings) == 0 {
 		return nil
 	}
-	extraSettings := map[string]interface{}{}
-	for key, value := range settings {
-		switch key {
-		case "path", "host", "headers", "server", "port", "tls", "alpn", "certificate", "fingerprint", "servername":
-			extraSettings[key] = value
-		case "no-grpc-header":
-			extraSettings["noGRPCHeader"] = value
-		case "x-padding-bytes":
-			extraSettings["xPaddingBytes"] = value
-		case "ech-opts":
-			extraSettings["echOpts"] = value
-		case "reality-opts":
-			if realityOpts, ok := value.(map[string]interface{}); ok && len(realityOpts) > 0 {
-				extraSettings["realityOpts"] = buildVLESSXHTTPExtraRealityOpts(realityOpts)
-			}
-		case "reuse-settings":
-			if reuseSettings, ok := value.(map[string]interface{}); ok && len(reuseSettings) > 0 {
-				extraSettings["reuseSettings"] = buildVLESSXHTTPExtraReuseSettings(reuseSettings)
-			}
-		case "skip-cert-verify":
-			extraSettings["skipCertVerify"] = value
-		case "private-key":
-			extraSettings["privateKey"] = value
-		case "client-fingerprint":
-			extraSettings["clientFingerprint"] = value
-		}
+	extraSettings := buildVLESSXHTTPMappedFields(settings, vlessXHTTPDownloadFieldMappings)
+	if extraSettings == nil {
+		extraSettings = map[string]interface{}{}
+	}
+	if realityOpts, ok := settings["reality-opts"].(map[string]interface{}); ok && len(realityOpts) > 0 {
+		extraSettings["realityOpts"] = buildVLESSXHTTPExtraRealityOpts(realityOpts)
+	}
+	if reuseSettings, ok := settings["reuse-settings"].(map[string]interface{}); ok && len(reuseSettings) > 0 {
+		extraSettings["reuseSettings"] = buildVLESSXHTTPExtraReuseSettings(reuseSettings)
 	}
 	if len(extraSettings) == 0 {
 		return nil
