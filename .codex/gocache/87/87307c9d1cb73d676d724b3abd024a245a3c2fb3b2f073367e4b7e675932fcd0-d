@@ -1,0 +1,16 @@
+# test log
+getenv GOTMPDIR
+open C:\Users\Dafiny\AppData\Local\Temp\TestMigrateTemplatesFromFilesCreatesExpectedCategories977562457\001\clash.yaml
+open C:\Users\Dafiny\AppData\Local\Temp\TestMigrateTemplatesFromFilesCreatesExpectedCategories977562457\001\surge.conf
+stat C:\Users\Dafiny\AppData\Local\Temp\TestMigrateTemplatesFromFilesCreatesExpectedCategories977562457\001
+open C:\Users\Dafiny\AppData\Local\Temp\TestMigrateTemplatesFromFilesCreatesExpectedCategories977562457\001
+open C:\Users\Dafiny\AppData\Local\Temp
+getenv GOTMPDIR
+open C:\Users\Dafiny\AppData\Local\Temp\TestMigrateTemplatesFromFilesRepairsInvalidCategory2471651409\001\surge.conf
+stat C:\Users\Dafiny\AppData\Local\Temp\TestMigrateTemplatesFromFilesRepairsInvalidCategory2471651409\001
+open C:\Users\Dafiny\AppData\Local\Temp\TestMigrateTemplatesFromFilesRepairsInvalidCategory2471651409\001
+open C:\Users\Dafiny\AppData\Local\Temp
+getenv SUBLINK_API_ENCRYPTION_KEY
+getenv SUBLINK_API_ENCRYPTION_KEY
+getenv SUBLINK_API_ENCRYPTION_KEY
+getenv SUBLINK_API_ENCRYPTION_KEY

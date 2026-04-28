@@ -1,0 +1,3 @@
+./config.go
+./config_secret_getters_test.go
+./config_test.go

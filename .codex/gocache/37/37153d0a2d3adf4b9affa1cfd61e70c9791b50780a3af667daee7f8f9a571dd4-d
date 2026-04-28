@@ -1,0 +1,9 @@
+./auth.go
+./early_handshake.go
+./halfpipe.go
+./masker.go
+./pathroot.go
+./tunnel.go
+./tunnel_ws.go
+./tunnel_ws_server.go
+./ws_stream_conn.go

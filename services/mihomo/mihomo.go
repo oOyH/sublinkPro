@@ -22,6 +22,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var defaultQualityCheckURLs = []string{
+	"https://my.123169.xyz/v1/info",
+	"https://my.ippure.com/v1/info",
+}
+
 // init 初始化 mihomo 配置
 // 启用 IPv6 支持，等同于 config.yaml 中的 ipv6: true
 func init() {
@@ -163,6 +168,13 @@ func MihomoDelayTest(
 	// 延迟测试成功后，如果需要检测 IP 质量
 	if detectQuality {
 		quality = FetchQualityWithAdapter(proxyAdapter, qualityURL)
+		if normalizedQuality := normalizeQualityResultWithLandingIP(quality, landingIP); normalizedQuality != nil {
+			quality = normalizedQuality
+		} else if quality != nil && quality.Status == models.QualityStatusFailed {
+			if fallbackLandingIP := fetchLandingIPWithAdapter(proxyAdapter, landingIPUrl); fallbackLandingIP != "" {
+				quality = normalizeQualityResultWithLandingIP(quality, fallbackLandingIP)
+			}
+		}
 	}
 
 	return latency, landingIP, quality, nil
@@ -425,6 +437,13 @@ CalculateSpeed:
 
 	if detectQuality && speed > 0 {
 		quality = FetchQualityWithAdapter(proxyAdapter, qualityURL)
+		if normalizedQuality := normalizeQualityResultWithLandingIP(quality, landingIP); normalizedQuality != nil {
+			quality = normalizedQuality
+		} else if quality != nil && quality.Status == models.QualityStatusFailed {
+			if fallbackLandingIP := fetchLandingIPWithAdapter(proxyAdapter, landingIPUrl); fallbackLandingIP != "" {
+				quality = normalizeQualityResultWithLandingIP(quality, fallbackLandingIP)
+			}
+		}
 	}
 
 	return speed, latency, totalRead, landingIP, quality, nil
@@ -604,6 +623,60 @@ func fetchQuality(proxyAdapter constant.Proxy, qualityURL string) *QualityCheckR
 	}
 }
 
+func deriveQualityFamily(ip string) string {
+	parsedIP := net.ParseIP(strings.TrimSpace(ip))
+	if parsedIP == nil {
+		return ""
+	}
+	if parsedIP.To4() != nil {
+		return models.QualityFamilyIPv4
+	}
+	return models.QualityFamilyIPv6
+}
+
+func normalizeQualityResultWithLandingIP(quality *QualityCheckResult, landingIP string) *QualityCheckResult {
+	if quality == nil {
+		return nil
+	}
+	if quality.Status != models.QualityStatusFailed {
+		return quality
+	}
+	landingIP = strings.TrimSpace(landingIP)
+	if landingIP == "" {
+		return nil
+	}
+	return &QualityCheckResult{
+		Status: models.QualityStatusPartial,
+		Family: deriveQualityFamily(landingIP),
+		IP:     landingIP,
+		Reason: "quality_api_unreachable",
+	}
+}
+
+func buildQualityURLCandidates(qualityURL string) []string {
+	candidates := make([]string, 0, len(defaultQualityCheckURLs)+1)
+	seen := make(map[string]struct{})
+
+	appendCandidate := func(raw string) {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			return
+		}
+		if _, exists := seen[raw]; exists {
+			return
+		}
+		seen[raw] = struct{}{}
+		candidates = append(candidates, raw)
+	}
+
+	appendCandidate(qualityURL)
+	for _, defaultURL := range defaultQualityCheckURLs {
+		appendCandidate(defaultURL)
+	}
+
+	return candidates
+}
+
 // FetchQualityWithAdapter 通过代理通道检测节点质量
 // 使用已有的 proxyAdapter 发起请求，获取 IP 质量信息
 // 失败静默返回 nil，不影响主流程
@@ -614,9 +687,21 @@ func FetchQualityWithAdapter(proxyAdapter constant.Proxy, qualityURL string) *Qu
 		}
 	}()
 
-	if qualityURL == "" {
-		qualityURL = "https://my.123169.xyz/v1/info"
+	var lastResult *QualityCheckResult
+	for _, candidateURL := range buildQualityURLCandidates(qualityURL) {
+		result := fetchQuality(proxyAdapter, candidateURL)
+		if result == nil {
+			continue
+		}
+		if result.Status == models.QualityStatusSuccess || result.Status == models.QualityStatusPartial {
+			return result
+		}
+		lastResult = result
 	}
 
-	return fetchQuality(proxyAdapter, qualityURL)
+	if lastResult != nil {
+		return lastResult
+	}
+
+	return &QualityCheckResult{Status: models.QualityStatusFailed, Reason: "quality_api_unreachable"}
 }

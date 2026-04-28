@@ -1,0 +1,9 @@
+./bridge.go
+./host_cleanup_task.go
+./job_ids.go
+./manager.go
+./reporter.go
+./speedtest_config.go
+./speedtest_task.go
+./subscription_task.go
+./utils.go
