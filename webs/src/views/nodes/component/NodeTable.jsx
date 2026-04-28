@@ -270,9 +270,24 @@ export default function NodeTable({
               </TableCell>
               <TableCell>
                 {(() => {
-                  const ipTypeDisplay = getIpTypeDisplay(node.IsBroadcast, node.QualityStatus, node.QualityFamily);
-                  const residentialDisplay = getResidentialDisplay(node.IsResidential, node.QualityStatus, node.QualityFamily);
-                  const fraudScoreDisplay = getFraudScoreDisplay(node.FraudScore, node.QualityStatus, node.QualityFamily);
+                  const ipTypeDisplay = getIpTypeDisplay(
+                    node.IsBroadcast,
+                    node.QualityStatus,
+                    node.QualityFamily,
+                    node.QualityHasBroadcast
+                  );
+                  const residentialDisplay = getResidentialDisplay(
+                    node.IsResidential,
+                    node.QualityStatus,
+                    node.QualityFamily,
+                    node.QualityHasResidential
+                  );
+                  const fraudScoreDisplay = getFraudScoreDisplay(
+                    node.FraudScore,
+                    node.QualityStatus,
+                    node.QualityFamily,
+                    node.QualityHasFraudScore
+                  );
                   const qualityStatusDisplay = getQualityStatusDisplay(node.QualityStatus, node.QualityFamily);
                   const unlockDisplay = getNodeUnlockSummaryDisplay(node, { limit: 2 });
                   const isUntested =

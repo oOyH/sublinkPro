@@ -516,13 +516,16 @@ func fetchLandingIPWithAdapter(proxyAdapter constant.Proxy, ipUrl string) string
 
 // QualityCheckResult 节点质量检测结果
 type QualityCheckResult struct {
-	IsBroadcast   bool   `json:"isBroadcast"`
-	IsResidential bool   `json:"isResidential"`
-	FraudScore    int    `json:"fraudScore"`
-	Status        string `json:"status"`
-	Family        string `json:"family"`
-	IP            string `json:"ip,omitempty"`
-	Reason        string `json:"reason,omitempty"`
+	IsBroadcast    bool   `json:"isBroadcast"`
+	IsResidential  bool   `json:"isResidential"`
+	FraudScore     int    `json:"fraudScore"`
+	HasBroadcast   bool   `json:"hasBroadcast"`
+	HasResidential bool   `json:"hasResidential"`
+	HasFraudScore  bool   `json:"hasFraudScore"`
+	Status         string `json:"status"`
+	Family         string `json:"family"`
+	IP             string `json:"ip,omitempty"`
+	Reason         string `json:"reason,omitempty"`
 }
 
 func fetchQuality(proxyAdapter constant.Proxy, qualityURL string) *QualityCheckResult {
@@ -605,23 +608,41 @@ func fetchQuality(proxyAdapter constant.Proxy, qualityURL string) *QualityCheckR
 		if qualityFamily == models.QualityFamilyIPv6 {
 			reason = "incomplete_ipv6_info"
 		}
-		return &QualityCheckResult{
-			Status: models.QualityStatusPartial,
-			Family: qualityFamily,
-			IP:     resultIP,
-			Reason: reason,
+		result := &QualityCheckResult{
+			Status:         models.QualityStatusPartial,
+			Family:         qualityFamily,
+			IP:             resultIP,
+			Reason:         reason,
+			HasBroadcast:   apiResp.IsBroadcast != nil,
+			HasResidential: apiResp.IsResidential != nil,
+			HasFraudScore:  apiResp.FraudScore != nil,
 		}
+		if apiResp.IsBroadcast != nil {
+			result.IsBroadcast = *apiResp.IsBroadcast
+		}
+		if apiResp.IsResidential != nil {
+			result.IsResidential = *apiResp.IsResidential
+		}
+		if apiResp.FraudScore != nil {
+			result.FraudScore = *apiResp.FraudScore
+		}
+		return result
 	}
 
 	return &QualityCheckResult{
-		IsBroadcast:   *apiResp.IsBroadcast,
-		IsResidential: *apiResp.IsResidential,
-		FraudScore:    *apiResp.FraudScore,
-		Status:        models.QualityStatusSuccess,
-		Family:        qualityFamily,
-		IP:            resultIP,
+		IsBroadcast:    *apiResp.IsBroadcast,
+		IsResidential:  *apiResp.IsResidential,
+		FraudScore:     *apiResp.FraudScore,
+		HasBroadcast:   true,
+		HasResidential: true,
+		HasFraudScore:  true,
+		Status:         models.QualityStatusSuccess,
+		Family:         qualityFamily,
+		IP:             resultIP,
 	}
 }
+
+var qualityFetcher = fetchQuality
 
 func deriveQualityFamily(ip string) string {
 	parsedIP := net.ParseIP(strings.TrimSpace(ip))
@@ -687,16 +708,27 @@ func FetchQualityWithAdapter(proxyAdapter constant.Proxy, qualityURL string) *Qu
 		}
 	}()
 
+	var partialResult *QualityCheckResult
 	var lastResult *QualityCheckResult
 	for _, candidateURL := range buildQualityURLCandidates(qualityURL) {
-		result := fetchQuality(proxyAdapter, candidateURL)
+		result := qualityFetcher(proxyAdapter, candidateURL)
 		if result == nil {
 			continue
 		}
-		if result.Status == models.QualityStatusSuccess || result.Status == models.QualityStatusPartial {
+		if result.Status == models.QualityStatusSuccess {
 			return result
 		}
+		if result.Status == models.QualityStatusPartial {
+			if partialResult == nil {
+				partialResult = result
+			}
+			continue
+		}
 		lastResult = result
+	}
+
+	if partialResult != nil {
+		return partialResult
 	}
 
 	if lastResult != nil {

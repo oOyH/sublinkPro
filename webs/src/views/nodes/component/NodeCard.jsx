@@ -148,9 +148,19 @@ export default function NodeCard({ node, isSelected, tagColorMap, onSelect, onVi
 
         <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
           {(() => {
-            const ipTypeDisplay = getIpTypeDisplay(node.IsBroadcast, node.QualityStatus, node.QualityFamily);
-            const residentialDisplay = getResidentialDisplay(node.IsResidential, node.QualityStatus, node.QualityFamily);
-            const fraudScoreDisplay = getFraudScoreDisplay(node.FraudScore, node.QualityStatus, node.QualityFamily);
+            const ipTypeDisplay = getIpTypeDisplay(node.IsBroadcast, node.QualityStatus, node.QualityFamily, node.QualityHasBroadcast);
+            const residentialDisplay = getResidentialDisplay(
+              node.IsResidential,
+              node.QualityStatus,
+              node.QualityFamily,
+              node.QualityHasResidential
+            );
+            const fraudScoreDisplay = getFraudScoreDisplay(
+              node.FraudScore,
+              node.QualityStatus,
+              node.QualityFamily,
+              node.QualityHasFraudScore
+            );
             const qualityStatusDisplay = getQualityStatusDisplay(node.QualityStatus, node.QualityFamily);
             const isUntested =
               ipTypeDisplay.label === '未检测' && residentialDisplay.label === '未检测' && fraudScoreDisplay.label === '未检测';

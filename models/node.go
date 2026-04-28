@@ -20,39 +20,43 @@ import (
 )
 
 type Node struct {
-	ID              int    `gorm:"primaryKey"`
-	Link            string //出站代理原始连接
-	LinkHash        string `gorm:"size:64;uniqueIndex" json:"-"`
-	Name            string //系统内节点名称
-	LinkName        string //节点原始名称
-	Protocol        string `gorm:"size:32;index"` //协议类型 (vmess, vless, trojan, ss 等)
-	LinkAddress     string //节点原始地址
-	LinkHost        string //节点原始Host
-	LinkPort        string //节点原始端口
-	LinkCountry     string //节点所属国家、落地IP国家
-	LandingIP       string //落地IP地址
-	DialerProxyName string
-	Source          string `gorm:"default:'manual'"`
-	SourceID        int
-	SourceSort      int `gorm:"default:0"` // 上游订阅中的顺序（从1开始；0表示未初始化）
-	Group           string
-	Speed           float64   `gorm:"default:0"`          // 测速结果(MB/s)
-	DelayTime       int       `gorm:"default:0"`          // 延迟时间(ms)
-	SpeedStatus     string    `gorm:"default:'untested'"` // 速度测试状态: untested, success, timeout, error
-	DelayStatus     string    `gorm:"default:'untested'"` // 延迟测试状态: untested, success, timeout, error
-	LatencyCheckAt  string    // 延迟测试时间
-	SpeedCheckAt    string    // 测速时间
-	CreatedAt       time.Time `gorm:"autoCreateTime" json:"CreatedAt"` // 创建时间
-	UpdatedAt       time.Time `gorm:"autoUpdateTime" json:"UpdatedAt"` // 更新时间
-	Tags            string    // 标签ID，逗号分隔，如 "1,3,5"
-	ContentHash     string    `gorm:"index;size:64"` // 节点内容哈希（SHA256），用于全库去重
-	IsBroadcast     bool      `gorm:"default:false"` // IP来源：true=广播IP false=原生IP
-	IsResidential   bool      `gorm:"default:false"` // 是否住宅IP
-	FraudScore      int       `gorm:"default:-1"`    // 欺诈评分（0-100，-1表示未检测）
-	QualityStatus   string    `gorm:"size:32;default:'untested'"`
-	QualityFamily   string    `gorm:"size:16;default:''"`
-	UnlockSummary   string    `gorm:"type:text"`
-	UnlockCheckAt   string
+	ID                    int    `gorm:"primaryKey"`
+	Link                  string //出站代理原始连接
+	LinkHash              string `gorm:"size:64;uniqueIndex" json:"-"`
+	Name                  string //系统内节点名称
+	LinkName              string //节点原始名称
+	Protocol              string `gorm:"size:32;index"` //协议类型 (vmess, vless, trojan, ss 等)
+	LinkAddress           string //节点原始地址
+	LinkHost              string //节点原始Host
+	LinkPort              string //节点原始端口
+	LinkCountry           string //节点所属国家、落地IP国家
+	LandingIP             string //落地IP地址
+	DialerProxyName       string
+	Source                string `gorm:"default:'manual'"`
+	SourceID              int
+	SourceSort            int `gorm:"default:0"` // 上游订阅中的顺序（从1开始；0表示未初始化）
+	Group                 string
+	Speed                 float64   `gorm:"default:0"`          // 测速结果(MB/s)
+	DelayTime             int       `gorm:"default:0"`          // 延迟时间(ms)
+	SpeedStatus           string    `gorm:"default:'untested'"` // 速度测试状态: untested, success, timeout, error
+	DelayStatus           string    `gorm:"default:'untested'"` // 延迟测试状态: untested, success, timeout, error
+	LatencyCheckAt        string    // 延迟测试时间
+	SpeedCheckAt          string    // 测速时间
+	CreatedAt             time.Time `gorm:"autoCreateTime" json:"CreatedAt"` // 创建时间
+	UpdatedAt             time.Time `gorm:"autoUpdateTime" json:"UpdatedAt"` // 更新时间
+	Tags                  string    // 标签ID，逗号分隔，如 "1,3,5"
+	ContentHash           string    `gorm:"index;size:64"` // 节点内容哈希（SHA256），用于全库去重
+	IsBroadcast           bool      `gorm:"default:false"` // IP来源：true=广播IP false=原生IP
+	IsResidential         bool      `gorm:"default:false"` // 是否住宅IP
+	FraudScore            int       `gorm:"default:-1"`    // 欺诈评分（0-100，-1表示未检测）
+	QualityStatus         string    `gorm:"size:32;default:'untested'"`
+	QualityFamily         string    `gorm:"size:16;default:''"`
+	QualityHasBroadcast   bool      `gorm:"default:false"` // 是否拿到了IP类型字段
+	QualityHasResidential bool      `gorm:"default:false"` // 是否拿到了住宅属性字段
+	QualityHasFraudScore  bool      `gorm:"default:false"` // 是否拿到了欺诈评分字段
+	QualityReason         string    `gorm:"size:64;default:''"`
+	UnlockSummary         string    `gorm:"type:text"`
+	UnlockCheckAt         string
 }
 
 type NodeSelectorItem struct {
@@ -167,6 +171,12 @@ func NormalizeNodeForImport(node *Node) {
 		case node.FraudScore < 0:
 			node.QualityStatus = QualityStatusUntested
 		}
+	}
+
+	if node.QualityStatus == QualityStatusSuccess {
+		node.QualityHasBroadcast = true
+		node.QualityHasResidential = true
+		node.QualityHasFraudScore = true
 	}
 
 	if node.QualityFamily == "" && node.LandingIP != "" {
@@ -297,7 +307,7 @@ func (node *Node) Update() error {
 
 // UpdateSpeed 更新节点测速结果
 func (node *Node) UpdateSpeed() error {
-	err := database.DB.Model(node).Select("Speed", "SpeedStatus", "LinkCountry", "LandingIP", "DelayTime", "DelayStatus", "LatencyCheckAt", "SpeedCheckAt", "IsBroadcast", "IsResidential", "FraudScore", "QualityStatus", "QualityFamily", "UnlockSummary", "UnlockCheckAt").Updates(node).Error
+	err := database.DB.Model(node).Select("Speed", "SpeedStatus", "LinkCountry", "LandingIP", "DelayTime", "DelayStatus", "LatencyCheckAt", "SpeedCheckAt", "IsBroadcast", "IsResidential", "FraudScore", "QualityStatus", "QualityFamily", "QualityHasBroadcast", "QualityHasResidential", "QualityHasFraudScore", "QualityReason", "UnlockSummary", "UnlockCheckAt").Updates(node).Error
 	if err != nil {
 		return err
 	}
@@ -316,6 +326,10 @@ func (node *Node) UpdateSpeed() error {
 		cachedNode.FraudScore = node.FraudScore
 		cachedNode.QualityStatus = node.QualityStatus
 		cachedNode.QualityFamily = node.QualityFamily
+		cachedNode.QualityHasBroadcast = node.QualityHasBroadcast
+		cachedNode.QualityHasResidential = node.QualityHasResidential
+		cachedNode.QualityHasFraudScore = node.QualityHasFraudScore
+		cachedNode.QualityReason = node.QualityReason
 		cachedNode.UnlockSummary = node.UnlockSummary
 		cachedNode.UnlockCheckAt = node.UnlockCheckAt
 		nodeCache.Set(node.ID, cachedNode)
@@ -325,23 +339,27 @@ func (node *Node) UpdateSpeed() error {
 
 // SpeedTestResult 测速结果结构（用于批量更新）
 type SpeedTestResult struct {
-	NodeID          int
-	Speed           float64
-	SpeedStatus     string
-	DelayTime       int
-	DelayStatus     string
-	LatencyCheckAt  string
-	SpeedCheckAt    string
-	LinkCountry     string
-	LandingIP       string
-	SkipSpeedFields bool // 是否跳过速度相关字段更新（用于TCP模式保留速度结果）
-	IsBroadcast     bool // IP来源：true=广播IP
-	IsResidential   bool // 是否住宅IP
-	FraudScore      int  // 欺诈评分（0-100，-1=未检测）
-	QualityStatus   string
-	QualityFamily   string
-	UnlockSummary   string
-	UnlockCheckAt   string
+	NodeID                int
+	Speed                 float64
+	SpeedStatus           string
+	DelayTime             int
+	DelayStatus           string
+	LatencyCheckAt        string
+	SpeedCheckAt          string
+	LinkCountry           string
+	LandingIP             string
+	SkipSpeedFields       bool // 是否跳过速度相关字段更新（用于TCP模式保留速度结果）
+	IsBroadcast           bool // IP来源：true=广播IP
+	IsResidential         bool // 是否住宅IP
+	FraudScore            int  // 欺诈评分（0-100，-1=未检测）
+	QualityStatus         string
+	QualityFamily         string
+	QualityHasBroadcast   bool
+	QualityHasResidential bool
+	QualityHasFraudScore  bool
+	QualityReason         string
+	UnlockSummary         string
+	UnlockCheckAt         string
 }
 
 // BatchAddNodes 批量添加节点（高效 + 容错）
@@ -509,6 +527,25 @@ var speedResultFields = []speedResultField{
 	{"fraud_score", func(r SpeedTestResult) string { return fmt.Sprintf("%d", r.FraudScore) }},
 	{"quality_status", func(r SpeedTestResult) string { return fmt.Sprintf("'%s'", escapeSQL(r.QualityStatus)) }},
 	{"quality_family", func(r SpeedTestResult) string { return fmt.Sprintf("'%s'", escapeSQL(r.QualityFamily)) }},
+	{"quality_has_broadcast", func(r SpeedTestResult) string {
+		if r.QualityHasBroadcast {
+			return "TRUE"
+		}
+		return "FALSE"
+	}},
+	{"quality_has_residential", func(r SpeedTestResult) string {
+		if r.QualityHasResidential {
+			return "TRUE"
+		}
+		return "FALSE"
+	}},
+	{"quality_has_fraud_score", func(r SpeedTestResult) string {
+		if r.QualityHasFraudScore {
+			return "TRUE"
+		}
+		return "FALSE"
+	}},
+	{"quality_reason", func(r SpeedTestResult) string { return fmt.Sprintf("'%s'", escapeSQL(r.QualityReason)) }},
 	{"unlock_summary", func(r SpeedTestResult) string { return fmt.Sprintf("'%s'", escapeSQL(r.UnlockSummary)) }},
 	{"unlock_check_at", func(r SpeedTestResult) string { return fmt.Sprintf("'%s'", escapeSQL(r.UnlockCheckAt)) }},
 }
@@ -588,6 +625,10 @@ func batchUpdateNodeCache(chunk []SpeedTestResult, skipSpeed bool) {
 			cachedNode.FraudScore = r.FraudScore
 			cachedNode.QualityStatus = r.QualityStatus
 			cachedNode.QualityFamily = r.QualityFamily
+			cachedNode.QualityHasBroadcast = r.QualityHasBroadcast
+			cachedNode.QualityHasResidential = r.QualityHasResidential
+			cachedNode.QualityHasFraudScore = r.QualityHasFraudScore
+			cachedNode.QualityReason = r.QualityReason
 			cachedNode.UnlockSummary = r.UnlockSummary
 			cachedNode.UnlockCheckAt = r.UnlockCheckAt
 			nodeCache.Set(r.NodeID, cachedNode)
@@ -601,18 +642,22 @@ func fallbackToIndividualSpeedUpdate(chunk []SpeedTestResult, skipSpeed bool) in
 	successCount := 0
 	for _, r := range chunk {
 		updates := map[string]interface{}{
-			"delay_time":       r.DelayTime,
-			"delay_status":     r.DelayStatus,
-			"latency_check_at": r.LatencyCheckAt,
-			"link_country":     r.LinkCountry,
-			"landing_ip":       r.LandingIP,
-			"is_broadcast":     r.IsBroadcast,
-			"is_residential":   r.IsResidential,
-			"fraud_score":      r.FraudScore,
-			"quality_status":   r.QualityStatus,
-			"quality_family":   r.QualityFamily,
-			"unlock_summary":   r.UnlockSummary,
-			"unlock_check_at":  r.UnlockCheckAt,
+			"delay_time":              r.DelayTime,
+			"delay_status":            r.DelayStatus,
+			"latency_check_at":        r.LatencyCheckAt,
+			"link_country":            r.LinkCountry,
+			"landing_ip":              r.LandingIP,
+			"is_broadcast":            r.IsBroadcast,
+			"is_residential":          r.IsResidential,
+			"fraud_score":             r.FraudScore,
+			"quality_status":          r.QualityStatus,
+			"quality_family":          r.QualityFamily,
+			"quality_has_broadcast":   r.QualityHasBroadcast,
+			"quality_has_residential": r.QualityHasResidential,
+			"quality_has_fraud_score": r.QualityHasFraudScore,
+			"quality_reason":          r.QualityReason,
+			"unlock_summary":          r.UnlockSummary,
+			"unlock_check_at":         r.UnlockCheckAt,
 		}
 		if !skipSpeed {
 			updates["speed"] = r.Speed
@@ -645,6 +690,10 @@ func fallbackToIndividualSpeedUpdate(chunk []SpeedTestResult, skipSpeed bool) in
 			cachedNode.FraudScore = r.FraudScore
 			cachedNode.QualityStatus = r.QualityStatus
 			cachedNode.QualityFamily = r.QualityFamily
+			cachedNode.QualityHasBroadcast = r.QualityHasBroadcast
+			cachedNode.QualityHasResidential = r.QualityHasResidential
+			cachedNode.QualityHasFraudScore = r.QualityHasFraudScore
+			cachedNode.QualityReason = r.QualityReason
 			cachedNode.UnlockSummary = r.UnlockSummary
 			cachedNode.UnlockCheckAt = r.UnlockCheckAt
 			nodeCache.Set(r.NodeID, cachedNode)
@@ -838,7 +887,28 @@ type NodeFilter struct {
 }
 
 func hasNodeQualityData(n Node) bool {
-	return n.QualityStatus == QualityStatusSuccess
+	return hasNodeBroadcastData(n) || hasNodeResidentialData(n) || hasNodeFraudScoreData(n)
+}
+
+func hasNodeBroadcastData(n Node) bool {
+	if n.QualityStatus == QualityStatusSuccess {
+		return true
+	}
+	return n.QualityHasBroadcast
+}
+
+func hasNodeResidentialData(n Node) bool {
+	if n.QualityStatus == QualityStatusSuccess {
+		return true
+	}
+	return n.QualityHasResidential
+}
+
+func hasNodeFraudScoreData(n Node) bool {
+	if n.QualityStatus == QualityStatusSuccess {
+		return true
+	}
+	return n.QualityHasFraudScore
 }
 
 func getNodeQualityStatusValue(n Node) string {
@@ -852,7 +922,7 @@ func getNodeQualityStatusValue(n Node) string {
 }
 
 func getNodeResidentialTypeValue(n Node) string {
-	if !hasNodeQualityData(n) {
+	if !hasNodeResidentialData(n) {
 		return "untested"
 	}
 	if n.IsResidential {
@@ -862,7 +932,7 @@ func getNodeResidentialTypeValue(n Node) string {
 }
 
 func getNodeIPTypeValue(n Node) string {
-	if !hasNodeQualityData(n) {
+	if !hasNodeBroadcastData(n) {
 		return "untested"
 	}
 	if n.IsBroadcast {

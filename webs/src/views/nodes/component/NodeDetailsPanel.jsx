@@ -187,9 +187,19 @@ export default function NodeDetailsPanel({
   const delayDisplay = getDelayDisplay(node.DelayTime, node.DelayStatus);
   const speedDisplay = getSpeedDisplay(node.Speed, node.SpeedStatus);
   const protocolInfo = getProtocolInfo(node.Link, protocolMeta);
-  const ipTypeDisplay = getIpTypeDisplay(node.IsBroadcast, node.QualityStatus, node.QualityFamily);
-  const residentialDisplay = getResidentialDisplay(node.IsResidential, node.QualityStatus, node.QualityFamily);
-  const fraudScoreDisplay = getFraudScoreDisplay(node.FraudScore, node.QualityStatus, node.QualityFamily);
+  const ipTypeDisplay = getIpTypeDisplay(node.IsBroadcast, node.QualityStatus, node.QualityFamily, node.QualityHasBroadcast);
+  const residentialDisplay = getResidentialDisplay(
+    node.IsResidential,
+    node.QualityStatus,
+    node.QualityFamily,
+    node.QualityHasResidential
+  );
+  const fraudScoreDisplay = getFraudScoreDisplay(
+    node.FraudScore,
+    node.QualityStatus,
+    node.QualityFamily,
+    node.QualityHasFraudScore
+  );
   const qualityStatusDisplay = getQualityStatusDisplay(node.QualityStatus, node.QualityFamily);
   const unlockDisplay = getNodeUnlockSummaryDisplay(node, { limit: 99 });
 

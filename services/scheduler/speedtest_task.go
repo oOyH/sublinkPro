@@ -21,6 +21,10 @@ func resetNodeQualityInfo(node *models.Node) {
 	node.FraudScore = -1
 	node.QualityStatus = models.QualityStatusUntested
 	node.QualityFamily = ""
+	node.QualityHasBroadcast = false
+	node.QualityHasResidential = false
+	node.QualityHasFraudScore = false
+	node.QualityReason = ""
 }
 
 func applyNodeQualityInfo(node *models.Node, quality *mihomo.QualityCheckResult) {
@@ -30,15 +34,26 @@ func applyNodeQualityInfo(node *models.Node, quality *mihomo.QualityCheckResult)
 	}
 	node.QualityStatus = quality.Status
 	node.QualityFamily = quality.Family
-	if quality.Status == models.QualityStatusSuccess {
+	node.QualityHasBroadcast = quality.HasBroadcast
+	node.QualityHasResidential = quality.HasResidential
+	node.QualityHasFraudScore = quality.HasFraudScore
+	node.QualityReason = quality.Reason
+
+	if quality.HasBroadcast {
 		node.IsBroadcast = quality.IsBroadcast
-		node.IsResidential = quality.IsResidential
-		node.FraudScore = quality.FraudScore
-		return
+	} else {
+		node.IsBroadcast = false
 	}
-	node.IsBroadcast = false
-	node.IsResidential = false
-	node.FraudScore = -1
+	if quality.HasResidential {
+		node.IsResidential = quality.IsResidential
+	} else {
+		node.IsResidential = false
+	}
+	if quality.HasFraudScore {
+		node.FraudScore = quality.FraudScore
+	} else {
+		node.FraudScore = -1
+	}
 }
 
 // RunSpeedTestWithConfig 使用指定配置执行节点测速（并发安全）
@@ -365,23 +380,27 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 				n.LatencyCheckAt = time.Now().Format("2006-01-02 15:04:05")
 				// 收集结果到批量更新列表（不再立即写数据库）
 				speedTestResults = append(speedTestResults, models.SpeedTestResult{
-					NodeID:          n.ID,
-					Speed:           n.Speed,
-					SpeedStatus:     n.SpeedStatus,
-					DelayTime:       n.DelayTime,
-					DelayStatus:     n.DelayStatus,
-					LatencyCheckAt:  n.LatencyCheckAt,
-					SpeedCheckAt:    "",
-					LinkCountry:     n.LinkCountry,
-					LandingIP:       n.LandingIP,
-					SkipSpeedFields: preserveSpeed, // 标记是否跳过速度字段更新
-					IsBroadcast:     n.IsBroadcast,
-					IsResidential:   n.IsResidential,
-					FraudScore:      n.FraudScore,
-					QualityStatus:   n.QualityStatus,
-					QualityFamily:   n.QualityFamily,
-					UnlockSummary:   n.UnlockSummary,
-					UnlockCheckAt:   n.UnlockCheckAt,
+					NodeID:                n.ID,
+					Speed:                 n.Speed,
+					SpeedStatus:           n.SpeedStatus,
+					DelayTime:             n.DelayTime,
+					DelayStatus:           n.DelayStatus,
+					LatencyCheckAt:        n.LatencyCheckAt,
+					SpeedCheckAt:          "",
+					LinkCountry:           n.LinkCountry,
+					LandingIP:             n.LandingIP,
+					SkipSpeedFields:       preserveSpeed, // 标记是否跳过速度字段更新
+					IsBroadcast:           n.IsBroadcast,
+					IsResidential:         n.IsResidential,
+					FraudScore:            n.FraudScore,
+					QualityStatus:         n.QualityStatus,
+					QualityFamily:         n.QualityFamily,
+					QualityHasBroadcast:   n.QualityHasBroadcast,
+					QualityHasResidential: n.QualityHasResidential,
+					QualityHasFraudScore:  n.QualityHasFraudScore,
+					QualityReason:         n.QualityReason,
+					UnlockSummary:         n.UnlockSummary,
+					UnlockCheckAt:         n.UnlockCheckAt,
 				})
 			}
 
@@ -474,22 +493,26 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 				nr.node.LatencyCheckAt = time.Now().Format("2006-01-02 15:04:05")
 				// 收集结果到批量更新列表（不再立即写数据库）
 				speedTestResults = append(speedTestResults, models.SpeedTestResult{
-					NodeID:         nr.node.ID,
-					Speed:          nr.node.Speed,
-					SpeedStatus:    nr.node.SpeedStatus,
-					DelayTime:      nr.node.DelayTime,
-					DelayStatus:    nr.node.DelayStatus,
-					LatencyCheckAt: nr.node.LatencyCheckAt,
-					SpeedCheckAt:   "",
-					LinkCountry:    nr.node.LinkCountry,
-					LandingIP:      nr.node.LandingIP,
-					IsBroadcast:    nr.node.IsBroadcast,
-					IsResidential:  nr.node.IsResidential,
-					FraudScore:     nr.node.FraudScore,
-					QualityStatus:  nr.node.QualityStatus,
-					QualityFamily:  nr.node.QualityFamily,
-					UnlockSummary:  nr.node.UnlockSummary,
-					UnlockCheckAt:  nr.node.UnlockCheckAt,
+					NodeID:                nr.node.ID,
+					Speed:                 nr.node.Speed,
+					SpeedStatus:           nr.node.SpeedStatus,
+					DelayTime:             nr.node.DelayTime,
+					DelayStatus:           nr.node.DelayStatus,
+					LatencyCheckAt:        nr.node.LatencyCheckAt,
+					SpeedCheckAt:          "",
+					LinkCountry:           nr.node.LinkCountry,
+					LandingIP:             nr.node.LandingIP,
+					IsBroadcast:           nr.node.IsBroadcast,
+					IsResidential:         nr.node.IsResidential,
+					FraudScore:            nr.node.FraudScore,
+					QualityStatus:         nr.node.QualityStatus,
+					QualityFamily:         nr.node.QualityFamily,
+					QualityHasBroadcast:   nr.node.QualityHasBroadcast,
+					QualityHasResidential: nr.node.QualityHasResidential,
+					QualityHasFraudScore:  nr.node.QualityHasFraudScore,
+					QualityReason:         nr.node.QualityReason,
+					UnlockSummary:         nr.node.UnlockSummary,
+					UnlockCheckAt:         nr.node.UnlockCheckAt,
 				})
 				mu.Unlock()
 				continue
@@ -666,22 +689,26 @@ func RunSpeedTestWithConfig(nodes []models.Node, trigger models.TaskTrigger, pro
 				result.node.SpeedCheckAt = time.Now().Format("2006-01-02 15:04:05")
 				// 收集结果到批量更新列表（不再立即写数据库）
 				speedTestResults = append(speedTestResults, models.SpeedTestResult{
-					NodeID:         result.node.ID,
-					Speed:          result.node.Speed,
-					SpeedStatus:    result.node.SpeedStatus,
-					DelayTime:      result.node.DelayTime,
-					DelayStatus:    result.node.DelayStatus,
-					LatencyCheckAt: result.node.LatencyCheckAt,
-					SpeedCheckAt:   result.node.SpeedCheckAt,
-					LinkCountry:    result.node.LinkCountry,
-					LandingIP:      result.node.LandingIP,
-					IsBroadcast:    result.node.IsBroadcast,
-					IsResidential:  result.node.IsResidential,
-					FraudScore:     result.node.FraudScore,
-					QualityStatus:  result.node.QualityStatus,
-					QualityFamily:  result.node.QualityFamily,
-					UnlockSummary:  result.node.UnlockSummary,
-					UnlockCheckAt:  result.node.UnlockCheckAt,
+					NodeID:                result.node.ID,
+					Speed:                 result.node.Speed,
+					SpeedStatus:           result.node.SpeedStatus,
+					DelayTime:             result.node.DelayTime,
+					DelayStatus:           result.node.DelayStatus,
+					LatencyCheckAt:        result.node.LatencyCheckAt,
+					SpeedCheckAt:          result.node.SpeedCheckAt,
+					LinkCountry:           result.node.LinkCountry,
+					LandingIP:             result.node.LandingIP,
+					IsBroadcast:           result.node.IsBroadcast,
+					IsResidential:         result.node.IsResidential,
+					FraudScore:            result.node.FraudScore,
+					QualityStatus:         result.node.QualityStatus,
+					QualityFamily:         result.node.QualityFamily,
+					QualityHasBroadcast:   result.node.QualityHasBroadcast,
+					QualityHasResidential: result.node.QualityHasResidential,
+					QualityHasFraudScore:  result.node.QualityHasFraudScore,
+					QualityReason:         result.node.QualityReason,
+					UnlockSummary:         result.node.UnlockSummary,
+					UnlockCheckAt:         result.node.UnlockCheckAt,
 				})
 
 				// 获取当前流量统计（用于实时显示）

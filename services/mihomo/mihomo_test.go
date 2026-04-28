@@ -3,6 +3,8 @@ package mihomo
 import (
 	"sublink/models"
 	"testing"
+
+	"github.com/metacubex/mihomo/constant"
 )
 
 func TestBuildQualityURLCandidatesIncludesFallbacksWithoutDuplicates(t *testing.T) {
@@ -53,3 +55,58 @@ func TestNormalizeQualityResultWithLandingIPKeepsSuccessfulResult(t *testing.T) 
 	}
 }
 
+func TestFetchQualityWithAdapterPrefersLaterSuccessOverEarlierPartial(t *testing.T) {
+	originalFetcher := qualityFetcher
+	defer func() { qualityFetcher = originalFetcher }()
+
+	results := map[string]*QualityCheckResult{
+		"https://my.123169.xyz/v1/info": {Status: models.QualityStatusPartial, Reason: "missing_quality_fields"},
+		"https://my.ippure.com/v1/info": {
+			Status:         models.QualityStatusSuccess,
+			IsBroadcast:    true,
+			IsResidential:  false,
+			FraudScore:     30,
+			HasBroadcast:   true,
+			HasResidential: true,
+			HasFraudScore:  true,
+		},
+	}
+	qualityFetcher = func(_ constant.Proxy, qualityURL string) *QualityCheckResult {
+		return results[qualityURL]
+	}
+
+	result := FetchQualityWithAdapter(nil, "https://my.123169.xyz/v1/info")
+	if result == nil {
+		t.Fatal("expected result, got nil")
+	}
+	if result.Status != models.QualityStatusSuccess {
+		t.Fatalf("expected success result, got %s", result.Status)
+	}
+	if result.FraudScore != 30 || !result.IsBroadcast {
+		t.Fatalf("expected full success payload, got %+v", result)
+	}
+}
+
+func TestFetchQualityWithAdapterFallsBackToPartialWhenNoSuccessExists(t *testing.T) {
+	originalFetcher := qualityFetcher
+	defer func() { qualityFetcher = originalFetcher }()
+
+	results := map[string]*QualityCheckResult{
+		"https://my.123169.xyz/v1/info": {Status: models.QualityStatusPartial, Reason: "missing_quality_fields"},
+		"https://my.ippure.com/v1/info": {Status: models.QualityStatusFailed, Reason: "status_500"},
+	}
+	qualityFetcher = func(_ constant.Proxy, qualityURL string) *QualityCheckResult {
+		return results[qualityURL]
+	}
+
+	result := FetchQualityWithAdapter(nil, "https://my.123169.xyz/v1/info")
+	if result == nil {
+		t.Fatal("expected result, got nil")
+	}
+	if result.Status != models.QualityStatusPartial {
+		t.Fatalf("expected partial result, got %s", result.Status)
+	}
+	if result.Reason != "missing_quality_fields" {
+		t.Fatalf("expected partial reason to be preserved, got %s", result.Reason)
+	}
+}

@@ -713,8 +713,13 @@ export const getDelayDisplay = (delay, delayStatus) => {
   return { label: `${delay}ms`, color: getDelayColor(delay), variant: 'outlined' };
 };
 
-export const getFraudScoreDisplay = (fraudScore, qualityStatus = QUALITY_STATUS.UNTESTED, qualityFamily = '') => {
-  if (qualityStatus !== QUALITY_STATUS.SUCCESS) {
+export const getFraudScoreDisplay = (
+  fraudScore,
+  qualityStatus = QUALITY_STATUS.UNTESTED,
+  qualityFamily = '',
+  hasFraudScore = qualityStatus === QUALITY_STATUS.SUCCESS
+) => {
+  if (qualityStatus !== QUALITY_STATUS.SUCCESS && !hasFraudScore) {
     const statusMeta = getQualityStatusMeta(qualityStatus, qualityFamily);
     return {
       label: statusMeta.shortLabel,
@@ -798,8 +803,13 @@ export const getFraudScoreDisplay = (fraudScore, qualityStatus = QUALITY_STATUS.
   };
 };
 
-export const getIpTypeDisplay = (isBroadcast, qualityStatus = QUALITY_STATUS.UNTESTED, qualityFamily = '') => {
-  if (qualityStatus !== QUALITY_STATUS.SUCCESS) {
+export const getIpTypeDisplay = (
+  isBroadcast,
+  qualityStatus = QUALITY_STATUS.UNTESTED,
+  qualityFamily = '',
+  hasBroadcast = qualityStatus === QUALITY_STATUS.SUCCESS
+) => {
+  if (qualityStatus !== QUALITY_STATUS.SUCCESS && !hasBroadcast) {
     const statusMeta = getQualityStatusMeta(qualityStatus, qualityFamily);
     return { label: statusMeta.shortLabel, color: statusMeta.color, variant: statusMeta.variant, tooltip: statusMeta.tooltip };
   }
@@ -808,8 +818,13 @@ export const getIpTypeDisplay = (isBroadcast, qualityStatus = QUALITY_STATUS.UNT
     : { label: '原生IP', color: 'success', variant: 'outlined' };
 };
 
-export const getResidentialDisplay = (isResidential, qualityStatus = QUALITY_STATUS.UNTESTED, qualityFamily = '') => {
-  if (qualityStatus !== QUALITY_STATUS.SUCCESS) {
+export const getResidentialDisplay = (
+  isResidential,
+  qualityStatus = QUALITY_STATUS.UNTESTED,
+  qualityFamily = '',
+  hasResidential = qualityStatus === QUALITY_STATUS.SUCCESS
+) => {
+  if (qualityStatus !== QUALITY_STATUS.SUCCESS && !hasResidential) {
     const statusMeta = getQualityStatusMeta(qualityStatus, qualityFamily);
     return { label: statusMeta.shortLabel, color: statusMeta.color, variant: statusMeta.variant, tooltip: statusMeta.tooltip };
   }

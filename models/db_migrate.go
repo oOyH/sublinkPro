@@ -130,6 +130,27 @@ func RunMigrations() error {
 		utils.Error("执行迁移 0030_add_unlock_check_columns 失败: %v", err)
 	}
 
+	if err := database.RunCustomMigration("0031_add_partial_quality_columns", func() error {
+		if err := db.AutoMigrate(&Node{}); err != nil {
+			return err
+		}
+		if err := db.Model(&Node{}).
+			Where("quality_status = ?", QualityStatusSuccess).
+			Updates(map[string]interface{}{
+				"quality_has_broadcast":   true,
+				"quality_has_residential": true,
+				"quality_has_fraud_score": true,
+			}).Error; err != nil {
+			return err
+		}
+		if err := db.Model(&Node{}).Where("quality_reason IS NULL").Update("quality_reason", "").Error; err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		utils.Error("执行迁移 0031_add_partial_quality_columns 失败: %v", err)
+	}
+
 	if err := database.RunCustomMigration("0024_migrate_legacy_webhook_settings", func() error {
 		legacyURL, _ := GetSetting("webhook_url")
 		legacyMethod, _ := GetSetting("webhook_method")
