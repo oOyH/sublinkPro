@@ -113,25 +113,25 @@ export default function NodeTable({
             <TableCell sx={{ minWidth: 88, textAlign: 'center' }}>来源</TableCell>
             <TableCell sx={{ minWidth: 92, whiteSpace: 'nowrap', textAlign: 'center' }}>标签</TableCell>
             <TableCell sx={{ minWidth: 64, whiteSpace: 'nowrap', textAlign: 'center' }}>国家</TableCell>
-            <TableCell sx={{ minWidth: 196, textAlign: 'center' }} sortDirection={sortBy === 'delay' || sortBy === 'speed' ? sortOrder : false}>
-              <Stack direction="row" spacing={3} alignItems="center" justifyContent="center" sx={{ whiteSpace: 'nowrap' }}>
-                <TableSortLabel
-                  active={sortBy === 'delay'}
-                  direction={sortBy === 'delay' ? sortOrder : 'asc'}
-                  onClick={() => onSort('delay')}
-                  sx={{ '& .MuiTableSortLabel-icon': { ml: 0.25 } }}
-                >
-                  延迟
-                </TableSortLabel>
-                <TableSortLabel
-                  active={sortBy === 'speed'}
-                  direction={sortBy === 'speed' ? sortOrder : 'asc'}
-                  onClick={() => onSort('speed')}
-                  sx={{ '& .MuiTableSortLabel-icon': { ml: 0.25 } }}
-                >
-                  速度
-                </TableSortLabel>
-              </Stack>
+            <TableCell sx={{ minWidth: 98, textAlign: 'center' }} sortDirection={sortBy === 'delay' ? sortOrder : false}>
+              <TableSortLabel
+                active={sortBy === 'delay'}
+                direction={sortBy === 'delay' ? sortOrder : 'asc'}
+                onClick={() => onSort('delay')}
+                sx={{ '& .MuiTableSortLabel-icon': { ml: 0.25 }, justifyContent: 'center' }}
+              >
+                延迟
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ minWidth: 98, textAlign: 'center' }} sortDirection={sortBy === 'speed' ? sortOrder : false}>
+              <TableSortLabel
+                active={sortBy === 'speed'}
+                direction={sortBy === 'speed' ? sortOrder : 'asc'}
+                onClick={() => onSort('speed')}
+                sx={{ '& .MuiTableSortLabel-icon': { ml: 0.25 }, justifyContent: 'center' }}
+              >
+                速度
+              </TableSortLabel>
             </TableCell>
             <TableCell sx={{ minWidth: 128, whiteSpace: 'nowrap', textAlign: 'center' }}>IP特征</TableCell>
             <TableCell align="center" sx={{ minWidth: 104, pr: 0.5 }}>
@@ -239,13 +239,11 @@ export default function NodeTable({
                 )}
               </TableCell>
               <TableCell align="center">
-                <Stack spacing={0.75} sx={{ minWidth: 0, alignItems: 'center' }}>
-                  <Stack direction="row" spacing={2.25} alignItems="flex-start" justifyContent="center">
+                {(() => {
+                  const d = getDelayDisplay(node.DelayTime, node.DelayStatus);
+                  return (
                     <Box sx={{ minWidth: 72, textAlign: 'center' }}>
-                      {(() => {
-                        const d = getDelayDisplay(node.DelayTime, node.DelayStatus);
-                        return <Chip label={d.label} color={d.color} variant={d.variant} size="small" />;
-                      })()}
+                      <Chip label={d.label} color={d.color} variant={d.variant} size="small" />
                       {node.LatencyCheckAt && (
                         <Typography
                           variant="caption"
@@ -256,11 +254,15 @@ export default function NodeTable({
                         </Typography>
                       )}
                     </Box>
+                  );
+                })()}
+              </TableCell>
+              <TableCell align="center">
+                {(() => {
+                  const s = getSpeedDisplay(node.Speed, node.SpeedStatus);
+                  return (
                     <Box sx={{ minWidth: 72, textAlign: 'center' }}>
-                      {(() => {
-                        const s = getSpeedDisplay(node.Speed, node.SpeedStatus);
-                        return <Chip label={s.label} color={s.color} variant={s.variant} size="small" />;
-                      })()}
+                      <Chip label={s.label} color={s.color} variant={s.variant} size="small" />
                       {node.SpeedCheckAt && node.Speed > 0 && (
                         <Typography
                           variant="caption"
@@ -271,8 +273,8 @@ export default function NodeTable({
                         </Typography>
                       )}
                     </Box>
-                  </Stack>
-                </Stack>
+                  );
+                })()}
               </TableCell>
               <TableCell align="center">
                 {(() => {

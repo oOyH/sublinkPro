@@ -26,10 +26,6 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SpeedIcon from '@mui/icons-material/Speed';
 import TimerIcon from '@mui/icons-material/Timer';
-import StarIcon from '@mui/icons-material/Star';
-import GitHubIcon from '@mui/icons-material/GitHub';
-import BugReportIcon from '@mui/icons-material/BugReport';
-import FavoriteIcon from '@mui/icons-material/Favorite';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import EventIcon from '@mui/icons-material/Event';
@@ -58,6 +54,7 @@ import { getQualityStatusMeta } from 'utils/fraudScore';
 import useResolvedColorScheme from 'hooks/useResolvedColorScheme';
 import { getReadableTextTokens, getSurfaceTokens } from 'themes/surfaceTokens';
 import { withAlpha } from 'utils/colorUtils';
+import { GITHUB_API_RELEASES } from 'config/githubRepo';
 
 const getDashboardReadableTextTokens = (theme, isDark) => {
   const readableTextTokens = getReadableTextTokens(theme, isDark);
@@ -145,23 +142,6 @@ const getReadableStatPercentColor = (theme, isDark) => {
 
 const getReadableWarningAccentColor = (theme, isDark) =>
   isDark ? withAlpha(theme.palette.warning.light, 0.94) : theme.palette.warning.dark;
-
-const getGitHubChipSx = (theme, isDark) => {
-  const { primaryText } = getDashboardReadableTextTokens(theme, isDark);
-
-  return {
-    bgcolor: isDark ? alpha(theme.palette.common.white, 0.08) : alpha(theme.palette.common.black, 0.04),
-    color: isDark ? withAlpha(primaryText, 0.98) : '#24292f',
-    border: `1px solid ${isDark ? alpha(theme.palette.common.white, 0.18) : 'rgba(27, 31, 36, 0.15)'}`,
-    fontWeight: 600,
-    '&:hover': {
-      bgcolor: isDark ? alpha(theme.palette.common.white, 0.12) : alpha(theme.palette.common.black, 0.07)
-    },
-    '& .MuiChip-icon': {
-      color: 'inherit'
-    }
-  };
-};
 
 const getInsetPanelSurface = (theme, accentColor, isDark) => {
   const { palette, mutedPanelSurface } = getSurfaceTokens(theme, isDark);
@@ -1110,216 +1090,6 @@ const PremiumStatCard = ({
   );
 };
 
-// ==============================|| Star 提醒卡片组件 ||============================== //
-
-import { donationConfig } from 'config/donation';
-import { GITHUB_API_RELEASES, GITHUB_API_REPO, GITHUB_ISSUES_URL, GITHUB_URL } from 'config/githubRepo';
-
-const StarReminderCard = () => {
-  const theme = useTheme();
-  const { isDark } = useResolvedColorScheme();
-  const [starCount, setStarCount] = useState(null);
-  const supportAccent = theme.palette.warning.main;
-  const supportAccentReadable = getReadableWarningAccentColor(theme, isDark);
-  const supportAccentSoft = alpha(supportAccent, isDark ? 0.18 : 0.12);
-  const supportAccentBorder = alpha(supportAccent, isDark ? 0.32 : 0.2);
-
-  useEffect(() => {
-    const fetchStarCount = async () => {
-      try {
-        const response = await fetch(GITHUB_API_REPO);
-        if (response.ok) {
-          const data = await response.json();
-          setStarCount(data.stargazers_count);
-        }
-      } catch (error) {
-        console.error('获取Star数量失败:', error);
-      }
-    };
-    fetchStarCount();
-  }, []);
-
-  const handleStar = () => {
-    window.open(GITHUB_URL, '_blank');
-  };
-
-  const handleFeedback = () => {
-    window.open(GITHUB_ISSUES_URL, '_blank');
-  };
-
-  return (
-    <Card
-      sx={{
-        ...getCalmSurface(theme, supportAccent, isDark),
-        mb: 3,
-        borderRadius: 3,
-        position: 'relative',
-        overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 3,
-          backgroundColor: supportAccent
-        }
-      }}
-    >
-      <CardContent sx={{ py: 2.5, px: 3, position: 'relative' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 2
-          }}
-        >
-          {/* 左侧内容 */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: { xs: '100%', sm: 280 } }}>
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: supportAccentSoft,
-                border: `1px solid ${supportAccentBorder}`,
-                flexShrink: 0
-              }}
-            >
-              <StarIcon sx={{ fontSize: 28, color: supportAccentReadable }} />
-            </Box>
-            <Box>
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontWeight: 600,
-                  color: supportAccentReadable,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5
-                }}
-              >
-                喜欢这个项目吗？
-                <FavoriteIcon sx={{ fontSize: 16, color: 'error.main' }} />
-              </Typography>
-              <Typography variant="body2" sx={{ color: getReadableSecondaryTextColor(theme, isDark) }}>
-                如果觉得不错，请给我们一个 Star 支持一下！如果你是L站佬友，也可以使用LDC支持本项目！你的支持是我们前进的动力。
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* 右侧按钮 */}
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: { xs: 'flex-start', sm: 'flex-end' },
-              gap: 1.5,
-              flexShrink: 0,
-              width: { xs: '100%', sm: 'auto' },
-              mt: { xs: 1.5, sm: 0 }
-            }}
-          >
-            {/* 打赏按钮组 */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                flexWrap: 'wrap',
-                justifyContent: { xs: 'flex-start', sm: 'flex-end' }
-              }}
-            >
-              {donationConfig.links.map((item, index) => (
-                <Chip
-                  key={index}
-                  icon={item.icon}
-                  label={item.title}
-                  component="a"
-                  href={item.url}
-                  target="_blank"
-                  clickable
-                  sx={{
-                    fontWeight: 600,
-                    px: 0.5,
-                    height: 36,
-                    borderRadius: 2,
-                    bgcolor: isDark ? alpha(theme.palette[item.color].main, 0.15) : alpha(theme.palette[item.color].light, 0.5),
-                    color: isDark ? theme.palette[item.color].light : theme.palette[item.color].dark,
-                    border: `1px solid ${isDark ? alpha(theme.palette[item.color].main, 0.3) : alpha(theme.palette[item.color].main, 0.2)}`,
-                    transition: 'background-color 0.2s ease, border-color 0.2s ease',
-                    '&:hover': {
-                      bgcolor: isDark ? alpha(theme.palette[item.color].main, 0.22) : alpha(theme.palette[item.color].light, 0.7)
-                    },
-                    '& .MuiChip-icon': {
-                      color: 'inherit',
-                      fontSize: 18,
-                      ml: 1
-                    }
-                  }}
-                />
-              ))}
-            </Box>
-
-            {/* 工具与 Star 组 */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                flexWrap: 'wrap',
-                justifyContent: { xs: 'flex-start', sm: 'flex-end' }
-              }}
-            >
-              <Tooltip title="问题反馈" arrow>
-                <IconButton
-                  onClick={handleFeedback}
-                  size="small"
-                  sx={{
-                    bgcolor: supportAccentSoft,
-                    color: supportAccentReadable,
-                    width: 36,
-                    height: 36,
-                    borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: supportAccentBorder,
-                    '&:hover': {
-                      bgcolor: alpha(supportAccent, isDark ? 0.24 : 0.18)
-                    }
-                  }}
-                >
-                  <BugReportIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Chip
-                icon={<GitHubIcon sx={{ fontSize: 18, color: 'inherit !important' }} />}
-                label={starCount !== null ? `Star ${starCount >= 1000 ? `${(starCount / 1000).toFixed(1)}k` : starCount}` : 'Star'}
-                onClick={handleStar}
-                sx={{
-                  fontWeight: 600,
-                  px: 1,
-                  height: 36,
-                  borderRadius: 2,
-                  ...getGitHubChipSx(theme, isDark),
-                  cursor: 'pointer',
-                  '& .MuiChip-icon': {
-                    color: 'inherit'
-                  }
-                }}
-              />
-            </Box>
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-};
-
 // ==============================|| 机场流量概览卡片组件 ||============================== //
 
 const AirportUsageCard = ({ airports = [], loading }) => {
@@ -2034,9 +1804,6 @@ export default function DashboardDefault() {
     <Box sx={{ pb: 3 }}>
       {/* 欢迎横幅 */}
       <WelcomeBanner greeting={greeting} />
-
-      {/* Star 提醒卡片 */}
-      <StarReminderCard />
 
       {/* 任务进度面板 */}
       <TaskProgressPanel />
